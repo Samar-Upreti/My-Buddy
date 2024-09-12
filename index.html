@@ -249,31 +249,7 @@
             fullscreenControls.classList.toggle('show');
         });
 
-        // Copy room code to clipboard
-        function copyToClipboard(code) {
-            navigator.clipboard.writeText(code).then(() => {
-                alert("Room code copied to clipboard!");
-            }).catch(err => {
-                alert("Failed to copy code: " + err);
-            });
-        }
-
-        // Share room code via Web Share API
-        function shareRoomCode(code) {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Hi buddy, join my video call using this room code',
-                    text: `Here's the room code: ${code}`,
-                    url: window.location.href
-                }).then(() => {
-                    console.log('Shared successfully');
-                }).catch(err => {
-                    alert("Failed to share code: " + err);
-                });
-            } else {
-                alert('Sharing is not supported on your device.');
-            }
-        }
+        
 
         // Open color picker when clicking the color button
         colorBtn.addEventListener('click', () => {
@@ -519,6 +495,32 @@
                     errorDisplay.textContent = 'Please enter a room code.';
             }
         });
+
+        // Copy room code to clipboard
+        function copyToClipboard(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                alert("Room code copied to clipboard!");
+            }).catch(err => {
+                alert("Failed to copy code: " + err);
+            });
+        }
+
+        // Share room code via Web Share API
+        function shareRoomCode(code) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Hi buddy, join my video call using this room code',
+                    text: `Here's the room code: ${code}`,
+                    url: window.location.href
+                }).then(() => {
+                    console.log('Shared successfully');
+                }).catch(err => {
+                    alert("Failed to share code: " + err);
+                });
+            } else {
+                alert('Sharing is not supported on your device.');
+            }
+        }
 
     </script>
 </body>
