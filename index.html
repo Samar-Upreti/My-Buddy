@@ -316,12 +316,17 @@
                     peer = new Peer();
                     call = peer.call(roomId, localStream);  // Call the host
                     call.on('stream', stream => {
-                        // Show the message buttons when room is joined
-                        showMessageButtons();
+                        remoteVideo.srcObject = stream;
                     });
+
+                    // Show the message buttons when the room is joined
+                    showMessageButtons();  // <- Add this line to invoke chat button on join
                 });
+            } else {
+                errorDisplay.textContent = 'Please enter a room code.';
             }
         });
+
 
         // Get the chat elements
         const chatBox = document.getElementById('chatBox');
@@ -514,105 +519,6 @@
                     errorDisplay.textContent = 'Please enter a room code.';
             }
         });
-
-         // UPDATE FOR CHAT BUTTON                             Update
-
-        // When the host creates a room
-        createRoomBtn.addEventListener('click', () => {
-            getLocalStream().then(() => {
-                peer = new Peer();
-                peer.on('open', id => {
-                    showMessageButtons();  // Show message buttons for the host
-                    roomCodeDisplay.innerHTML = `Room Code: ${id}`;
-                });
-
-                // Listen for incoming data connections (for chat)
-                peer.on('connection', conn => {
-                    dataConnection = conn;
-                    
-                    // Handle incoming messages from the joiner
-                    dataConnection.on('data', message => {
-                        appendMessage(message, false); // Display the message from the joiner
-                    });
-                });
-
-                // Listen for incoming calls (for video streaming)
-                peer.on('call', incomingCall => {
-                    incomingCall.answer(localStream);  // Answer with local video stream
-                    incomingCall.on('stream', stream => {
-                        remoteVideo.srcObject = stream;  // Display remote stream from the joiner
-                    });
-                });
-            });
-        });
-
-        // When a user joins a room
-        joinRoomBtn.addEventListener('click', () => {
-            const roomId = roomCodeInput.value;
-            if (roomId) {
-                getLocalStream().then(() => {
-                    peer = new Peer();  // Create a new peer for the joiner
-
-                    peer.on('open', id => {
-                        showMessageButtons();  // Show message buttons for the joiner
-                        
-                        // Establish a data connection to the host (for chat)
-                        dataConnection = peer.connect(roomId);
-
-                        // Handle incoming messages from the host
-                        dataConnection.on('data', message => {
-                            appendMessage(message, false);  // Display the message from the host
-                        });
-
-                        // Make a call to the host with the local video stream
-                        const call = peer.call(roomId, localStream);
-                        call.on('stream', stream => {
-                            remoteVideo.srcObject = stream;  // Display the host's stream
-                        });
-                    });
-
-                    // Handle errors
-                    peer.on('error', err => {
-                        errorDisplay.textContent = 'Error: ' + err.message;
-                    });
-                });
-            } else {
-                errorDisplay.textContent = 'Please enter a room code.';
-            }
-        });
-
-        // Function to send a message when the Send button is clicked
-        sendMessageBtn.addEventListener('click', () => {
-            const message = chatInput.value;
-            if (message.trim() !== '') {
-                appendMessage(message);  // Display the local message
-                chatInput.value = '';    // Clear the input field
-                if (dataConnection) {
-                    dataConnection.send(message);  // Send the message to the other peer
-                }
-            }
-        });
-
-        // Function to append a message to the chat
-        function appendMessage(message, isLocal = true) {
-            const msgElement = document.createElement('div');
-            msgElement.textContent = message;
-            msgElement.style.textAlign = isLocal ? 'right' : 'left';  // Align local messages to the right
-            msgElement.style.padding = '5px';
-            msgElement.style.marginBottom = '5px';
-            msgElement.style.borderRadius = '5px';
-            msgElement.style.backgroundColor = isLocal ? '#007bff' : '#f1f1f1';
-            msgElement.style.color = isLocal ? 'white' : 'black';
-            chatMessages.appendChild(msgElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;  // Scroll to the bottom of the chat
-        }
-
-        // Function to show the message buttons (visible for both host and joiner)
-        function showMessageButtons() {
-            messageBtn.style.display = 'block';
-            fullscreenMessageBtn.style.display = 'block';
-        }
-
 
     </script>
 </body>
