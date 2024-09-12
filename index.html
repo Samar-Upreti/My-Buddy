@@ -30,8 +30,6 @@
     
     <!-- Favicon for browser tabs -->
     <link rel="icon" type="image/png" href="https://mybuddy.mysamar.in/logo.png" sizes="32x32"> <!-- Set logo.png as favicon -->
-    <link rel="icon" type="image/x-icon" href="logo.png">
-
     
     <!-- Structured Data (Schema Markup for SEO) -->
     <script type="application/ld+json">
@@ -78,9 +76,6 @@
             <button id="muteAudioBtn" class="control-btn">🔊</button>
             <button id="messageBtn" class="control-btn" style="display:none;">💬</button>
             <button id="zoomBtn" class="control-btn">⛶</button>
-            <button id="imageBtn" class="control-btn">
-                <img src="ytbutton.png" alt="Image Button" id="imageInButton">
-            </button>
         </div>
 
         <!-- Hamburger menu button (in zoomed mode) -->
@@ -97,9 +92,6 @@
             <button id="colorBtn" title="Change Background Color">🎨</button> 
             <button id="fullscreenMessageBtn" class="control-btn" style="display:none;">💬</button>
             <button id="fullscreenMinimizeBtn" class="control-btn">◻</button>
-            <button id="imageBtn" class="control-btn">
-                <img src="ytbutton.png" alt="Image Button" id="imageInButton">
-            </button>
         </div>
 
 
@@ -197,25 +189,21 @@
             });
         });
 
+        // Join a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
-        const roomId = roomCodeInput.value;
-        if (roomId) {
-            getLocalStream().then(() => {
-                peer = new Peer(); // Add an ID for joiner
-                call = peer.call(roomId, localStream);  // Call the host
-                call.on('stream', stream => {
-                    remoteVideo.srcObject = stream;  // Display remote stream
+            const roomId = roomCodeInput.value;
+            if (roomId) {
+                getLocalStream().then(() => {
+                    peer = new Peer();
+                    call = peer.call(roomId, localStream);  // Call the host
+                    call.on('stream', stream => {
+                        remoteVideo.srcObject = stream;
+                    });
                 });
-
-                peer.on('error', err => {
-                    errorDisplay.textContent = 'Error connecting to room: ' + err.message;
-                });
-            });
-        } else {
-            errorDisplay.textContent = 'Please enter a room code.';
-        }
+            } else {
+                errorDisplay.textContent = 'Please enter a room code.';
+            }
         });
-
 
         // Mute/Unmute audio for both modes
         function toggleAudio() {
@@ -461,9 +449,72 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        document.getElementById('imageBtn').onclick = function() {
-            window.location.href = 'https://www.youtube.com/@swadesisamar?sub_confirmation=1','_blank';
-        };
+             // The Update JS                                         The Updated JS
+   
+            let currentCall;  // To hold the current active call
+
+            // Function to get the local media stream (video and audio)
+            function getLocalStream() {
+                return navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(stream => {
+                        localStream = stream;
+                        localVideo.srcObject = stream;
+                        errorDisplay.textContent = '';  // Clear any previous errors
+                    })
+                    .catch(err => {
+                        errorDisplay.textContent = 'Error accessing camera or microphone: ' + err.message;
+                    });
+            }
+
+            // Function for creating a room (host)
+            createRoomBtn.addEventListener('click', () => {
+                getLocalStream().then(() => {
+                    peer = new Peer();  // Create PeerJS instance for the host
+                    peer.on('open', id => {
+                        roomCodeDisplay.innerHTML = `Room Code: ${id}`;
+                    });
+
+                    // Listen for incoming calls from joiners
+                    peer.on('call', incomingCall => {
+                        incomingCall.answer(localStream);  // Answer with the host's local stream
+                        incomingCall.on('stream', stream => {
+                            remoteVideo.srcObject = stream;  // Display the remote stream
+                        });
+
+                        // Store the current call for later use (e.g., ending the call)
+                        currentCall = incomingCall;
+                    });
+                });
+            });
+
+            // Function for joining a room (joiner)
+            joinRoomBtn.addEventListener('click', () => {
+                const roomId = roomCodeInput.value;
+                if (roomId) {
+                    getLocalStream().then(() => {
+                        peer = new Peer();  // Create PeerJS instance for the joiner
+
+                        peer.on('open', id => {
+                            // Make a call to the host's peer with the given roomId
+                            const call = peer.call(roomId, localStream);  // Call the host with local stream
+                            call.on('stream', stream => {
+                                remoteVideo.srcObject = stream;  // Display the host's stream
+                            });
+
+                            // Store the current call for later use
+                            currentCall = call;
+                        });
+
+                        // Handle errors
+                        peer.on('error', err => {
+                            errorDisplay.textContent = 'Error: ' + err.message;
+                        });
+                    });
+                } else {
+                    errorDisplay.textContent = 'Please enter a room code.';
+            }
+        });
+
 
     </script>
 </body>
