@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Buddy</title>
+    <link rel="stylesheet" href="main.css">
+    
+    <!-- Meta Description (Essential for SEO) -->
+    <meta name="description" content="My Buddy - The best platform to connect and communicate with your friends in real-time using video chat.">
+    
+    <!-- Meta Keywords (Less relevant today but still useful) -->
+    <meta name="keywords" content="My Buddy, video chat, connect with friends, real-time communication, PeerJS video call, P2P chat, record podcast">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://mybuddy.mysamar.in/" />
+    
+    <!-- Open Graph Meta Tags (for social media sharing) -->
+    <meta property="og:title" content="My Buddy - Real-Time Video Chat with Friends" />
+    <meta property="og:description" content="Connect with your friends easily via video chat using My Buddy, a real-time communication platform." />
+    <meta property="og:url" content="https://mybuddy.mysamar.in/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://mybuddy.mysamar.in/logo.png" /> <!-- Path to your logo.png in root directory -->
+    
+    <!-- Twitter Card Meta Tags (for Twitter sharing) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="My Buddy - Real-Time Video Chat with Friends">
+    <meta name="twitter:description" content="Connect with your friends easily via video chat using My Buddy.">
+    <meta name="twitter:image" content="https://mybuddy.mysamar.in/logo.png"> <!-- Path to your logo.png in root directory -->
+    
+    <!-- Favicon for browser tabs -->
+    <link rel="icon" type="image/png" href="https://mybuddy.mysamar.in/logo.png" sizes="32x32"> <!-- Set logo.png as favicon -->
+    <link rel="icon" type="image/x-icon" href="logo.png">
+
+    
+    <!-- Structured Data (Schema Markup for SEO) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "My Buddy",
+      "url": "https://mybuddy.mysamar.in",
+      "description": "My Buddy is a real-time video chat platform to connect with friends.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "My Buddy"
+      }
+    }
+    </script>
+    
+        
+</head>
+<body>
+    <div class="container">
+        <h1 id="title">My Buddy!</h1>
+
+        <!-- Host controls -->
+        <div id="hostControls">
+            <button id="createRoomBtn">Create Room</button>
+            <div id="roomCodeDisplay"></div>
+        </div>
+
+        <!-- Joiner controls -->
+        <div id="joinControls">
+            <input type="text" id="roomCodeInput" placeholder="Enter room code">
+            <button id="joinRoomBtn">Join Room</button>
+        </div>
+
+        <!-- Video streams -->
+        <div class="video-container" id="videoContainer">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+        <!-- Initial Controls (before zoom mode) -->
+        <div id="controls">
+            <button id="muteVideoBtn" class="control-btn">📷</button>
+            <button id="muteAudioBtn" class="control-btn">🔊</button>
+            <button id="messageBtn" class="control-btn" style="display:none;">💬</button>
+            <button id="zoomBtn" class="control-btn">⛶</button>
+            <button id="imageBtn" class="control-btn">
+                <img src="ytbutton.png" alt="Image Button" id="imageInButton">
+            </button>
+        </div>
+
+        <!-- Hamburger menu button (in zoomed mode) -->
+        <button id="menuBtn">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+        </button>
+
+        <!-- Controls for zoomed view (hidden until menu is clicked) -->
+        <div id="fullscreenControls">
+            <button id="fullscreenMuteVideoBtn" class="control-btn">📷</button>
+            <button id="fullscreenMuteAudioBtn" class="control-btn">🔊</button>
+            <button id="colorBtn" title="Change Background Color">🎨</button> 
+            <button id="fullscreenMessageBtn" class="control-btn" style="display:none;">💬</button>
+            <button id="fullscreenMinimizeBtn" class="control-btn">◻</button>
+            <button id="imageBtn" class="control-btn">
+                <img src="ytbutton.png" alt="Image Button" id="imageInButton">
+            </button>
+        </div>
+
+
+       <!-- Chat box (initially hidden) -->
+        <div id="chatBox">
+            <!-- Close button (top-right) -->
+            <button id="closeChatBtn">&times;</button>
+            
+            <!-- Chat message area -->
+            <div id="chatMessages"></div>
+            
+            <!-- Input field for chat message -->
+            <input id="chatInput" type="text" placeholder="Type a message...">
+            
+            <!-- Send button -->
+            <button id="sendMessageBtn">Send</button>
+        </div>
+
+
+
+        <!-- Error display -->
+        <p id="error"></p>
+
+        <!-- Color picker input (hidden) -->
+        <input type="color" id="colorPicker" style="display:none;" value="#000000" />
+
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <script>
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const errorDisplay = document.getElementById('error');
+
+        const muteAudioBtn = document.getElementById('muteAudioBtn');
+        const muteVideoBtn = document.getElementById('muteVideoBtn');
+        const zoomBtn = document.getElementById('zoomBtn');
+
+        const videoContainer = document.getElementById('videoContainer');
+        const minimizeBtn = document.getElementById('fullscreenMinimizeBtn');
+        const controls = document.getElementById('controls');
+        const fullscreenControls = document.getElementById('fullscreenControls');
+        const menuBtn = document.getElementById('menuBtn');
+
+        const fullscreenMuteAudioBtn = document.getElementById('fullscreenMuteAudioBtn');
+        const fullscreenMuteVideoBtn = document.getElementById('fullscreenMuteVideoBtn');
+        const colorBtn = document.getElementById('colorBtn'); // Color button
+        const colorPicker = document.getElementById('colorPicker'); // Hidden color picker
+
+        let localStream;
+        let peer;
+        let call;
+        let audioEnabled = true;
+        let videoEnabled = true;
+
+        // Function to get media stream (video and audio)
+        function getLocalStream() {
+            return navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    localStream = stream;
+                    localVideo.srcObject = stream;
+                    errorDisplay.textContent = '';  // Clear error if successful
+                })
+                .catch(err => {
+                    errorDisplay.textContent = 'Error accessing camera or microphone: ' + err.message;
+                });
+        }
+
+        // Create a room (Host)
+        createRoomBtn.addEventListener('click', () => {
+            getLocalStream().then(() => {
+                peer = new Peer(); // Create a PeerJS instance
+                peer.on('open', id => {
+                    roomCodeDisplay.innerHTML = `
+                        Room Code: ${id}
+                        <span class="icon-btn copy-icon" id="copyBtn"></span>
+                        <span class="icon-btn share-icon" id="shareBtn"></span>
+                    `;
+                    
+                    // Add event listeners to copy and share icons
+                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
+                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
+                });
+
+                peer.on('call', incomingCall => {
+                    incomingCall.answer(localStream);  // Answer incoming call
+                    incomingCall.on('stream', stream => {
+                        remoteVideo.srcObject = stream;
+                    });
+                });
+            });
+        });
+
+        // Join a room (Joiner)
+        joinRoomBtn.addEventListener('click', () => {
+            const roomId = roomCodeInput.value;
+            if (roomId) {
+                getLocalStream().then(() => {
+                    peer = new Peer();
+                    call = peer.call(roomId, localStream);  // Call the host
+                    call.on('stream', stream => {
+                        remoteVideo.srcObject = stream;
+                    });
+                });
+            } else {
+                errorDisplay.textContent = 'Please enter a room code.';
+            }
+        });
+
+        // Mute/Unmute audio for both modes
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            localStream.getAudioTracks()[0].enabled = audioEnabled;
+            muteAudioBtn.textContent = audioEnabled ? '🔊' : '🔇';
+            fullscreenMuteAudioBtn.textContent = audioEnabled ? '🔊' : '🔇';
+        }
+
+        muteAudioBtn.addEventListener('click', toggleAudio);
+        fullscreenMuteAudioBtn.addEventListener('click', toggleAudio);
+
+        // Mute/Unmute video for both modes
+        function toggleVideo() {
+            videoEnabled = !videoEnabled;
+            localStream.getVideoTracks()[0].enabled = videoEnabled;
+            muteVideoBtn.textContent = videoEnabled ? '📷' : '📵';
+            fullscreenMuteVideoBtn.textContent = videoEnabled ? '📷' : '📵';
+        }
+
+        muteVideoBtn.addEventListener('click', toggleVideo);
+        fullscreenMuteVideoBtn.addEventListener('click', toggleVideo);
+
+        // Zoom mode (simulated fullscreen)
+        zoomBtn.addEventListener('click', () => {
+            videoContainer.classList.add('zoomed');
+            controls.style.display = 'none';  // Hide original controls
+            menuBtn.style.display = 'block';  // Show menu button
+            fullscreenControls.classList.remove('show');  // Hide controls on zoom-in
+        });
+
+        // Minimize zoom mode
+        minimizeBtn.addEventListener('click', () => {
+            videoContainer.classList.remove('zoomed');
+            fullscreenControls.style.display = 'none';
+            controls.style.display = 'flex';
+            menuBtn.style.display = 'none';  // Hide menu button
+            videoContainer.style.backgroundColor = ''; // Reset background color when zoomed out
+        });
+
+        // Toggle menu (show/hide fullscreen controls)
+        menuBtn.addEventListener('click', () => {
+            fullscreenControls.classList.toggle('show');
+        });
+
+        // Copy room code to clipboard
+        function copyToClipboard(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                alert("Room code copied to clipboard!");
+            }).catch(err => {
+                alert("Failed to copy code: " + err);
+            });
+        }
+
+        // Share room code via Web Share API
+        function shareRoomCode(code) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Hi buddy, join my video call using this room code',
+                    text: `Here's the room code: ${code}`,
+                    url: window.location.href
+                }).then(() => {
+                    console.log('Shared successfully');
+                }).catch(err => {
+                    alert("Failed to share code: " + err);
+                });
+            } else {
+                alert('Sharing is not supported on your device.');
+            }
+        }
+
+        // Open color picker when clicking the color button
+        colorBtn.addEventListener('click', () => {
+            colorPicker.click();
+        });
+
+        // Change background color based on selected color (only in zoomed mode)
+        colorPicker.addEventListener('input', (event) => {
+            videoContainer.style.backgroundColor = event.target.value;
+        });
+
+        // Get the message buttons
+        const messageBtn = document.getElementById('messageBtn');
+        const fullscreenMessageBtn = document.getElementById('fullscreenMessageBtn');
+
+        // Function to show the message buttons
+        function showMessageButtons() {
+            messageBtn.style.display = 'block';
+            fullscreenMessageBtn.style.display = 'block';
+        }
+
+        // Modify the existing event listeners for room creation and joining
+
+        // When user creates a room (Host)
+        createRoomBtn.addEventListener('click', () => {
+            getLocalStream().then(() => {
+                peer = new Peer(); // Create PeerJS instance
+                peer.on('open', id => {
+                    // Show the message buttons when room is created
+                    showMessageButtons();
+                });
+            });
+        });
+
+        // When user joins a room (Joiner)
+        joinRoomBtn.addEventListener('click', () => {
+            const roomId = roomCodeInput.value;
+            if (roomId) {
+                getLocalStream().then(() => {
+                    peer = new Peer();
+                    call = peer.call(roomId, localStream);  // Call the host
+                    call.on('stream', stream => {
+                        // Show the message buttons when room is joined
+                        showMessageButtons();
+                    });
+                });
+            }
+        });
+
+        // Get the chat elements
+        const chatBox = document.getElementById('chatBox');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const closeChatBtn = document.getElementById('closeChatBtn'); // New close button
+
+        // Show/Hide the chat box when the message button is clicked
+        messageBtn.addEventListener('click', toggleChatBox);
+        fullscreenMessageBtn.addEventListener('click', toggleChatBox);
+
+        function toggleChatBox() {
+            chatBox.style.display = chatBox.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Close the chat box when the close button is clicked
+        closeChatBtn.addEventListener('click', () => {
+            chatBox.style.display = 'none';
+        });
+
+        // Close the chat box by clicking outside
+        document.addEventListener('click', (event) => {
+            if (!chatBox.contains(event.target) && !messageBtn.contains(event.target) && !fullscreenMessageBtn.contains(event.target)) {
+                chatBox.style.display = 'none';
+            }
+        });
+
+        // Prevent chat box from closing when clicked inside
+        chatBox.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        let dataConnection; // To hold the data connection for chat
+
+        // Function to append a message to the chat box
+        function appendMessage(message, isLocal = true) {
+            const msgElement = document.createElement('div');
+            msgElement.textContent = message;
+            msgElement.style.textAlign = isLocal ? 'right' : 'left'; // Align local messages to the right
+            msgElement.style.padding = '5px';
+            msgElement.style.marginBottom = '5px';
+            msgElement.style.borderRadius = '5px';
+            msgElement.style.backgroundColor = isLocal ? '#007bff' : '#f1f1f1';
+            msgElement.style.color = isLocal ? 'white' : 'black';
+            chatMessages.appendChild(msgElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+        }
+
+        // When user creates a room (Host)
+        createRoomBtn.addEventListener('click', () => {
+            getLocalStream().then(() => {
+                peer = new Peer();
+                peer.on('open', id => {
+                    showMessageButtons();
+                });
+
+                // Handle incoming data connection for chat
+                peer.on('connection', (conn) => {
+                    dataConnection = conn;
+                    dataConnection.on('data', (message) => {
+                        appendMessage(message, false); // Display remote message
+                    });
+                });
+            });
+        });
+
+        // When user joins a room (Joiner)
+        joinRoomBtn.addEventListener('click', () => {
+            const roomId = roomCodeInput.value;
+            if (roomId) {
+                getLocalStream().then(() => {
+                    peer = new Peer();
+                    call = peer.call(roomId, localStream);
+                    call.on('stream', stream => {
+                        remoteVideo.srcObject = stream;
+                    });
+
+                    // Establish a data connection for chat
+                    dataConnection = peer.connect(roomId);
+                    dataConnection.on('data', (message) => {
+                        appendMessage(message, false); // Display remote message
+                    });
+                });
+            }
+        });
+
+        // Send a chat message
+        sendMessageBtn.addEventListener('click', () => {
+            const message = chatInput.value;
+            if (message.trim() !== '') {
+                appendMessage(message); // Show the local message
+                chatInput.value = ''; // Clear the input field
+                if (dataConnection) {
+                    dataConnection.send(message); // Send the message to the peer
+                }
+            }
+        });
+
+        // Allow pressing "Enter" to send a message
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessageBtn.click();
+            }
+        });
+
+
+        // Function to append a message to the chat box
+        function appendMessage(message, isLocal = true) {
+            const msgElement = document.createElement('div');
+            msgElement.textContent = message;
+            
+            // Apply message classes
+            msgElement.classList.add('message');
+            if (isLocal) {
+                msgElement.classList.add('local');
+            } else {
+                msgElement.classList.add('remote');
+            }
+
+            // Append the message to the chat box
+            chatMessages.appendChild(msgElement);
+            
+            // Scroll to the bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        document.getElementById('imageBtn').onclick = function() {
+            window.location.href = 'https://www.youtube.com/@swadesisamar?sub_confirmation=1','_blank';
+        };
+
+    </script>
+</body>
+</html>

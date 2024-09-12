@@ -1,0 +1,11 @@
+# Block all web crawlers from accessing any part of the site
+User-agent: *
+Disallow: /private/
+Disallow: /api/
+
+# Allow search engines to access everything else
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: http://mybuddy.mysamar.in/sitemap.xml
