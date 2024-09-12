@@ -197,21 +197,25 @@
             });
         });
 
-        // Join a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
-            const roomId = roomCodeInput.value;
-            if (roomId) {
-                getLocalStream().then(() => {
-                    peer = new Peer();
-                    call = peer.call(roomId, localStream);  // Call the host
-                    call.on('stream', stream => {
-                        remoteVideo.srcObject = stream;
-                    });
+        const roomId = roomCodeInput.value;
+        if (roomId) {
+            getLocalStream().then(() => {
+                peer = new Peer(); // Add an ID for joiner
+                call = peer.call(roomId, localStream);  // Call the host
+                call.on('stream', stream => {
+                    remoteVideo.srcObject = stream;  // Display remote stream
                 });
-            } else {
-                errorDisplay.textContent = 'Please enter a room code.';
-            }
+
+                peer.on('error', err => {
+                    errorDisplay.textContent = 'Error connecting to room: ' + err.message;
+                });
+            });
+        } else {
+            errorDisplay.textContent = 'Please enter a room code.';
+        }
         });
+
 
         // Mute/Unmute audio for both modes
         function toggleAudio() {
