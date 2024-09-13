@@ -83,40 +83,6 @@ video {
     box-shadow: none;
 }
 
-@media (max-width: 768px) {
-    /* Chat box adjustments for mobile */
-    #chatBox {
-        width: 95%; /* Full width of mobile screen */
-        height: 400px; /* Slightly taller for mobile */
-        bottom: 10px;
-        right: 0;
-        left: 0;
-        margin: 0 auto; /* Center horizontally on mobile */
-    }
-
-    /* Chat input and send button adjustments */
-    #chatInput {
-        font-size: 14px;
-        padding: 10px; /* Adjusted padding */
-        width: 80%; /* Input box takes most space */
-        box-sizing: border-box; /* Ensures proper sizing */
-    }
-
-    #sendMessageBtn {
-        width: 50px; /* Proper size for mobile */
-        height: 40px;
-        font-size: 14px;
-        margin-left: 5px; /* Keep some gap */
-    }
-
-    /* Adjust message styling for compact look on mobile */
-    .message.local, .message.remote {
-        margin-top: 5px; /* Reduce gap between messages */
-        margin-bottom: 5px;
-    }
-}
-
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .container {
