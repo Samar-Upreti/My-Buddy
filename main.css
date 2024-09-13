@@ -299,10 +299,10 @@ button:hover {
 /* Chat input box styling */
 #chatInput {
     flex: 1; /* Take all available space */
-    padding: 10px;
+    padding: 10px; /* Increased padding for better touch area */
     border-radius: 20px; /* Round corners for chat input */
     border: 1px solid #ccc;
-    margin-right: 5px;
+    margin-right: 5px; /* Space between input and button */
     box-sizing: border-box;
 }
 
@@ -311,7 +311,7 @@ button:hover {
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 50%;
+    border-radius: 50%; /* Circular button */
     width: 40px;
     height: 40px;
     display: flex;
@@ -328,7 +328,7 @@ button:hover {
     margin: 5px 0;
     width: fit-content;
     max-width: 80%;
-    position: relative;
+    position: relative; /* Ensure positioning adjustments */
 }
 
 /* Local message (right-aligned) */
@@ -336,6 +336,9 @@ button:hover {
     background-color: #007bff;
     color: white;
     margin-left: auto;
+    padding-top: 10px; /* Adjusted height for the message */
+    padding-bottom: 10px; /* Adjusted bottom padding */
+    margin-top: 40px;
 }
 
 /* Remote message (left-aligned) */
@@ -343,48 +346,41 @@ button:hover {
     background-color: #f1f1f1;
     color: black;
     margin-right: auto;
+    padding-top: 10px; /* Adjusted height for the message */
+    padding-bottom: 10px; /* Adjusted bottom padding */
+    margin-top: 40px;
 }
 
 /* Reduce gap between messages */
 .message.local, .message.remote {
-    margin-top: 5px; 
-    margin-bottom: 5px;
+    margin-top: 5px; /* Compact gap between messages */
+    margin-bottom: 5px; /* Add margin-bottom for consistency */
 }
 
 /* Mobile responsiveness */
 @media (max-width: 600px) {
     #chatBox {
-        width: 95%;
-        height: 400px;
+        width: 95%; /* Make the chat box fill more space on mobile */
+        height: 300px; /* Reduced height for mobile */
         bottom: 10px;
         right: 5px;
     }
 
     #chatInput {
         font-size: 14px;
-        padding: 8px;
-        flex: 1; /* Flexible width */
+        padding: 8px; /* Adjust padding for mobile */
     }
 
     #sendMessageBtn {
-        width: 35px;
+        width: 35px; /* Slightly smaller button on mobile */
         height: 35px;
         font-size: 14px;
-        margin-left: 5px;
     }
 
     #chatContainer {
-        padding: 5px;
-        display: flex;
-        align-items: center;
-    }
-
-    .message.local, .message.remote {
-        margin-top: 5px;
-        margin-bottom: 5px;
+        padding: 5px; /* Reduce padding on mobile */
     }
 }
-
 
 /* Styling for the title */
 #title {
