@@ -353,22 +353,43 @@ button:hover {
 }
 
 /* Mobile responsiveness for the chat input and send button */
+/* Mobile-specific adjustments */
 @media (max-width: 600px) {
+    /* Chat box adjustments for mobile */
     #chatBox {
-        width: 90%; /* Make the chat box take up more space on mobile */
-        height: 300px; /* Reduce height slightly for mobile */
+        width: 95%; /* Full width of mobile screen */
+        height: 400px; /* Slightly taller for mobile */
         bottom: 10px;
-        right: 5px;
+        right: 0;
+        left: 0;
+        margin: 0 auto; /* Center horizontally on mobile */
     }
 
+    /* Chat input and send button adjustments */
     #chatInput {
-        font-size: 14px; /* Adjust the font size for mobile */
+        font-size: 14px;
+        padding: 10px; /* Adjusted padding */
+        width: 80%; /* Input box takes most space */
+        box-sizing: border-box; /* Ensures proper sizing */
     }
 
     #sendMessageBtn {
-        width: 50px; /* Reduce the button width */
-        height: 35px; /* Slightly increase the height for better tap area */
-        font-size: 14px; /* Adjust font size */
+        width: 50px; /* Proper size for mobile */
+        height: 40px;
+        font-size: 14px;
+        margin-left: 5px; /* Keep some gap */
+    }
+
+    #chatContainer {
+        padding: 5px; /* Reduced padding for mobile */
+        display: flex;
+        align-items: center;
+    }
+
+    /* Adjust message styling for compact look on mobile */
+    .message.local, .message.remote {
+        margin-top: 5px; /* Reduce gap between messages */
+        margin-bottom: 5px;
     }
 }
 
