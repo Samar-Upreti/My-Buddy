@@ -108,13 +108,6 @@ video {
         font-size: 14px;
         margin-left: 5px; /* Keep some gap */
     }
-
-    #chatContainer {
-        padding: 5px; /* Reduced padding for mobile */
-        display: flex;
-        align-items: center;
-    }
-
     /* Adjust message styling for compact look on mobile */
     .message.local, .message.remote {
         margin-top: 5px; /* Reduce gap between messages */
