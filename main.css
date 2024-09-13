@@ -354,42 +354,49 @@ button:hover {
 
 /* Mobile responsiveness for the chat input and send button */
 /* Mobile-specific adjustments */
+/* Mobile-specific styles */
 @media (max-width: 600px) {
-    /* Chat box adjustments for mobile */
-    #chatBox {
-        width: 95%; /* Full width of mobile screen */
-        height: 400px; /* Slightly taller for mobile */
-        bottom: 10px;
-        right: 0;
-        left: 0;
-        margin: 0 auto; /* Center horizontally on mobile */
-    }
-
-    /* Chat input and send button adjustments */
-    #chatInput {
-        font-size: 14px;
-        padding: 10px; /* Adjusted padding */
-        width: 80%; /* Input box takes most space */
-        box-sizing: border-box; /* Ensures proper sizing */
-    }
-
-    #sendMessageBtn {
-        width: 50px; /* Proper size for mobile */
-        height: 40px;
-        font-size: 14px;
-        margin-left: 5px; /* Keep some gap */
-    }
-
+    /* Ensure the chat container adjusts properly */
     #chatContainer {
-        padding: 5px; /* Reduced padding for mobile */
         display: flex;
-        align-items: center;
+        flex-direction: row;
+        padding: 5px;
+        justify-content: space-between;
     }
 
-    /* Adjust message styling for compact look on mobile */
-    .message.local, .message.remote {
-        margin-top: 5px; /* Reduce gap between messages */
-        margin-bottom: 5px;
+    /* Ensure the input field takes the remaining space */
+    #chatInput {
+        flex-grow: 1;
+        margin-right: 5px;  /* Adjust gap between input and button */
+        padding: 10px;
+        box-sizing: border-box;
+        height: 40px;  /* Ensure the input height matches */
+    }
+
+    /* Attach send button to the right of the input */
+    #sendMessageBtn {
+        width: 60px;
+        height: 40px;  /* Same height as input */
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        flex-shrink: 0;  /* Prevent shrinking */
+    }
+
+    /* Chat messages area adjusted for mobile */
+    #chatMessages {
+        max-height: 70%; /* Adjust the height for better message visibility */
+        overflow-y: auto;
+        padding: 10px;
+        background-color: #f9f9f9;
+    }
+
+    /* Ensure proper message layout */
+    .message {
+        margin: 5px 0; /* Reduce gap between messages */
+        padding: 8px;
     }
 }
 
