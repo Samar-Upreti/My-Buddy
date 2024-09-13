@@ -531,33 +531,54 @@
         }
 
         // UPdate                                                 Update for chat
-        function appendMessage(message, isLocal = true) {
-            const msgElement = document.createElement('div');
-            msgElement.textContent = message;
-            msgElement.classList.add('message');
-            if (isLocal) {
-                msgElement.classList.add('local');
-            } else {
-                msgElement.classList.add('remote');
-            }
-            chatMessages.appendChild(msgElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        // When user creates a room (Host)
+        createRoomBtn.addEventListener('click', () => {
+            getLocalStream().then(() => {
+                peer = new Peer();
+                peer.on('open', id => {
+                    roomCodeDisplay.innerHTML = `Room Code: ${id}`;
+                });
 
-        sendMessageBtn.addEventListener('click', () => {
-            const message = chatInput.value;
-            if (message.trim() !== '') {
-                appendMessage(message);
-                chatInput.value = '';
-                if (dataConnection) {
-                    dataConnection.send(message);
-                }
-            }
+                // Handle incoming data connection for chat
+                peer.on('connection', (conn) => {
+                    dataConnection = conn;
+                    dataConnection.on('data', (message) => {
+                        appendMessage(message, false); // Display remote message
+                    });
+                });
+
+                // Listen for incoming calls from joiners
+                peer.on('call', incomingCall => {
+                    incomingCall.answer(localStream);
+                    incomingCall.on('stream', stream => {
+                        remoteVideo.srcObject = stream;
+                    });
+                });
+            });
         });
 
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessageBtn.click();
+        // When user joins a room (Joiner)
+        joinRoomBtn.addEventListener('click', () => {
+            const roomId = roomCodeInput.value;
+            if (roomId) {
+                getLocalStream().then(() => {
+                    peer = new Peer();
+                    peer.on('open', () => {
+                        // Establish a call for video/audio
+                        call = peer.call(roomId, localStream);
+                        call.on('stream', stream => {
+                            remoteVideo.srcObject = stream;
+                        });
+
+                        // Establish a data connection for chat
+                        dataConnection = peer.connect(roomId);
+                        dataConnection.on('data', (message) => {
+                            appendMessage(message, false); // Display remote message
+                        });
+                    });
+                });
+            } else {
+                errorDisplay.textContent = 'Please enter a room code.';
             }
         });
 
