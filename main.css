@@ -110,7 +110,7 @@ video {
         flex-direction: column;
         justify-content: space-between;
         height: calc(100vh - 100px);
-        padding-top: 100px; /* Space for 4-finger area */
+        padding-top: 30px; /* Space for 4-finger area */
     }
 
     .zoomed video {
@@ -388,24 +388,31 @@ button:hover {
 @media (max-width: 600px) {
     #chatBox {
         width: 95%; /* Make the chat box fill more space on mobile */
-        height: 300px; /* Reduced height for mobile */
+        height: 400px; /* Reduced height for mobile */
         bottom: 10px;
-        right: 5px;
+        right: 0;
+        left: 0;
+        margin: 0 auto;
     }
 
     #chatInput {
         font-size: 14px;
         padding: 8px; /* Adjust padding for mobile */
+        width: 80%;
+        box-sizing: border-box;
     }
 
     #sendMessageBtn {
-        width: 35px; /* Slightly smaller button on mobile */
-        height: 35px;
+        width: 50px; /* Slightly smaller button on mobile */
+        height: 40px;
         font-size: 14px;
+        margin-left: 5px;
     }
 
     #chatContainer {
         padding: 5px; /* Reduce padding on mobile */
+        display: flex;
+        align-items: center;
     }
 }
 
