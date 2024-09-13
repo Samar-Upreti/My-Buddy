@@ -347,6 +347,30 @@ button:hover {
     padding-bottom: 10px; /* Adjusted bottom padding */
     margin-top: 40px;
 }
+/* Update for CSS Enhance                                       Update For chat gap,responsiveness */
+.message.local, .message.remote {
+    margin-top: 10px; /* Reduced margin for both local and remote messages */
+}
+
+/* Mobile responsiveness for the chat input and send button */
+@media (max-width: 600px) {
+    #chatBox {
+        width: 90%; /* Make the chat box take up more space on mobile */
+        height: 300px; /* Reduce height slightly for mobile */
+        bottom: 10px;
+        right: 5px;
+    }
+
+    #chatInput {
+        font-size: 14px; /* Adjust the font size for mobile */
+    }
+
+    #sendMessageBtn {
+        width: 50px; /* Reduce the button width */
+        height: 35px; /* Slightly increase the height for better tap area */
+        font-size: 14px; /* Adjust font size */
+    }
+}
 
 /* Styling for the title */
 #title {
