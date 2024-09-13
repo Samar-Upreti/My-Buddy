@@ -245,7 +245,7 @@ button:hover {
     border-radius: 50%;
 }
 
-/* Chat box styling */
+/* Chat box styling */ 
 #chatBox {
     display: none;
     flex-direction: column;
@@ -298,27 +298,24 @@ button:hover {
 
 /* Chat input box styling */
 #chatInput {
-    flex: 1; /* Take all available space */
-    padding: 10px; /* Increased padding for better touch area */
-    border-radius: 20px; /* Round corners for chat input */
+    flex: 1;
+    padding: 5px;
+    border-radius: 5px;
     border: 1px solid #ccc;
-    margin-right: 5px; /* Space between input and button */
+    margin-right: 5px;
     box-sizing: border-box;
 }
 
 /* Send button styling */
 #sendMessageBtn {
+    width: 60px;
+    height: 30px;
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 50%; /* Circular button */
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 5px;
     cursor: pointer;
-    margin-left: auto;
+    /* Restored position with flexbox handling alignment */
 }
 
 /* Message Styling (Local & Remote) */
@@ -357,28 +354,23 @@ button:hover {
     margin-bottom: 5px; /* Add margin-bottom for consistency */
 }
 
-/* Mobile responsiveness */
+/* Mobile responsiveness for the chat input and send button */
 @media (max-width: 600px) {
     #chatBox {
-        width: 95%; /* Make the chat box fill more space on mobile */
-        height: 300px; /* Reduced height for mobile */
+        width: 90%; /* Make the chat box take up more space on mobile */
+        height: 300px; /* Reduce height slightly for mobile */
         bottom: 10px;
         right: 5px;
     }
 
     #chatInput {
-        font-size: 14px;
-        padding: 8px; /* Adjust padding for mobile */
+        font-size: 14px; /* Adjust the font size for mobile */
     }
 
     #sendMessageBtn {
-        width: 35px; /* Slightly smaller button on mobile */
-        height: 35px;
-        font-size: 14px;
-    }
-
-    #chatContainer {
-        padding: 5px; /* Reduce padding on mobile */
+        width: 50px; /* Reduce the button width */
+        height: 35px; /* Slightly increase the height for better tap area */
+        font-size: 14px; /* Adjust font size */
     }
 }
 
