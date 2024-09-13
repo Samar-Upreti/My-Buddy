@@ -83,7 +83,7 @@ video {
     box-shadow: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     /* Chat box adjustments for mobile */
     #chatBox {
         width: 95%; /* Full width of mobile screen */
@@ -123,43 +123,7 @@ video {
 }
 
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        justify-content: center;
-        height: 100vh;
-        margin-top: 10px;
-    }
 
-    .video-container {
-        justify-content: center;
-        width: 100%;
-    }
-
-    video {
-        width: 44vw;
-        height: auto;
-        margin: 5px;
-        border: 2px solid #000;
-        border-radius: 10px;
-        object-fit: cover;
-    }
-
-    .zoomed {
-        flex-direction: column;
-        justify-content: space-between;
-        height: calc(100vh - 100px);
-        padding-top: 100px; /* Space for 4-finger area */
-    }
-
-    .zoomed video {
-        width: 80vw;
-        height: 38vh;
-        margin: 0;
-        object-fit: cover;
-    }
-}
 
 /* Control buttons */
 input, button {
