@@ -276,6 +276,37 @@ button:hover {
     padding: 5px; /* Optional: add some padding if needed */
 }
 
+/* Chat box styling */ 
+#chatBox {
+    display: none;
+    flex-direction: column;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    height: 350px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    z-index: 1002;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Close button styling */
+#closeChatBtn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1001;
+    background-color: rgb(240, 160, 160); 
+    border-radius: 0 0px 0px 10px; /* Top-right and bottom-left corners rounded */
+    padding: 5px; /* Optional: add some padding if needed */
+}
+
 /* Chat messages area */
 #chatMessages {
     height: 80%;
@@ -347,30 +378,34 @@ button:hover {
     padding-bottom: 10px; /* Adjusted bottom padding */
     margin-top: 40px;
 }
-
 /* Reduce gap between messages */
 .message.local, .message.remote {
     margin-top: 5px; /* Compact gap between messages */
     margin-bottom: 5px; /* Add margin-bottom for consistency */
 }
 
-/* Mobile responsiveness for the chat input and send button */
+/* Mobile responsiveness */
 @media (max-width: 600px) {
     #chatBox {
-        width: 90%; /* Make the chat box take up more space on mobile */
-        height: 300px; /* Reduce height slightly for mobile */
+        width: 95%; /* Make the chat box fill more space on mobile */
+        height: 300px; /* Reduced height for mobile */
         bottom: 10px;
         right: 5px;
     }
 
     #chatInput {
-        font-size: 14px; /* Adjust the font size for mobile */
+        font-size: 14px;
+        padding: 8px; /* Adjust padding for mobile */
     }
 
     #sendMessageBtn {
-        width: 50px; /* Reduce the button width */
-        height: 35px; /* Slightly increase the height for better tap area */
-        font-size: 14px; /* Adjust font size */
+        width: 35px; /* Slightly smaller button on mobile */
+        height: 35px;
+        font-size: 14px;
+    }
+
+    #chatContainer {
+        padding: 5px; /* Reduce padding on mobile */
     }
 }
 
