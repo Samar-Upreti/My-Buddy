@@ -561,13 +561,13 @@
             });
         });
 
+        // When user joins a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
             const roomId = roomCodeInput.value;
             if (roomId) {
                 getLocalStream().then(() => {
                     peer = new Peer();
 
-                    // Once peer is open, establish both video and data connections
                     peer.on('open', () => {
                         // Establish video connection
                         call = peer.call(roomId, localStream);
@@ -582,6 +582,18 @@
                         dataConnection.on('open', () => {
                             dataConnection.on('data', (message) => {
                                 appendMessage(message, false); // Display remote message
+                            });
+                        });
+
+                        // Handle incoming connection requests for data (if another joiner sends a message)
+                        peer.on('connection', (conn) => {
+                            dataConnection = conn;
+
+                            // Ensure the connection is open before handling messages
+                            dataConnection.on('open', () => {
+                                dataConnection.on('data', (message) => {
+                                    appendMessage(message, false); // Display remote message
+                                });
                             });
                         });
                     });
