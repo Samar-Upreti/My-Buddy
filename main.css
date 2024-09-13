@@ -110,7 +110,7 @@ video {
         flex-direction: column;
         justify-content: space-between;
         height: calc(100vh - 100px);
-        padding-top: 50px; /* Space for 4-finger area */
+        padding-top: 100px; /* Space for 4-finger area */
     }
 
     .zoomed video {
