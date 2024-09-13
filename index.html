@@ -539,15 +539,19 @@
                     roomCodeDisplay.innerHTML = `Room Code: ${id}`;
                 });
 
-                // Handle incoming data connection for chat
+                // Listen for incoming data connections (for messaging)
                 peer.on('connection', (conn) => {
                     dataConnection = conn;
-                    dataConnection.on('data', (message) => {
-                        appendMessage(message, false); // Display remote message
+
+                    // Ensure the data connection is open before allowing messages
+                    dataConnection.on('open', () => {
+                        dataConnection.on('data', (message) => {
+                            appendMessage(message, false); // Display remote message
+                        });
                     });
                 });
 
-                // Listen for incoming calls from joiners
+                // Listen for incoming calls (for video)
                 peer.on('call', incomingCall => {
                     incomingCall.answer(localStream);
                     incomingCall.on('stream', stream => {
@@ -557,23 +561,28 @@
             });
         });
 
-        // When user joins a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
             const roomId = roomCodeInput.value;
             if (roomId) {
                 getLocalStream().then(() => {
                     peer = new Peer();
+
+                    // Once peer is open, establish both video and data connections
                     peer.on('open', () => {
-                        // Establish a call for video/audio
+                        // Establish video connection
                         call = peer.call(roomId, localStream);
                         call.on('stream', stream => {
                             remoteVideo.srcObject = stream;
                         });
 
-                        // Establish a data connection for chat
+                        // Establish data connection (for chat)
                         dataConnection = peer.connect(roomId);
-                        dataConnection.on('data', (message) => {
-                            appendMessage(message, false); // Display remote message
+
+                        // Ensure the data connection is open before handling messages
+                        dataConnection.on('open', () => {
+                            dataConnection.on('data', (message) => {
+                                appendMessage(message, false); // Display remote message
+                            });
                         });
                     });
                 });
@@ -581,7 +590,6 @@
                 errorDisplay.textContent = 'Please enter a room code.';
             }
         });
-
 
     </script>
 </body>
