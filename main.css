@@ -83,40 +83,43 @@ video {
     box-shadow: none;
 }
 
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    /* Chat box adjustments for mobile */
-    #chatBox {
-        width: 95%; /* Full width of mobile screen */
-        height: 400px; /* Slightly taller for mobile */
-        bottom: 10px;
-        right: 0;
-        left: 0;
-        margin: 0 auto; /* Center horizontally on mobile */
+    .container {
+        flex-direction: column;
+        justify-content: center;
+        height: 100vh;
+        margin-top: 10px;
     }
 
-    /* Chat input and send button adjustments */
-    #chatInput {
-        font-size: 14px;
-        padding: 10px; /* Adjusted padding */
-        width: 80%; /* Input box takes most space */
-        box-sizing: border-box; /* Ensures proper sizing */
+    .video-container {
+        justify-content: center;
+        width: 100%;
     }
 
-    #sendMessageBtn {
-        width: 50px; /* Proper size for mobile */
-        height: 40px;
-        font-size: 14px;
-        margin-left: 5px; /* Keep some gap */
+    video {
+        width: 44vw;
+        height: auto;
+        margin: 5px;
+        border: 2px solid #000;
+        border-radius: 10px;
+        object-fit: cover;
     }
-    /* Adjust message styling for compact look on mobile */
-    .message.local, .message.remote {
-        margin-top: 5px; /* Reduce gap between messages */
-        margin-bottom: 5px;
+
+    .zoomed {
+        flex-direction: column;
+        justify-content: space-between;
+        height: calc(100vh - 100px);
+        padding-top: 50px; /* Space for 4-finger area */
+    }
+
+    .zoomed video {
+        width: 80vw;
+        height: 38vh;
+        margin: 0;
+        object-fit: cover;
     }
 }
-
-
-
 
 /* Control buttons */
 input, button {
