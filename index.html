@@ -530,6 +530,38 @@
             }
         }
 
+        // UPdate                                                 Update for chat
+        function appendMessage(message, isLocal = true) {
+            const msgElement = document.createElement('div');
+            msgElement.textContent = message;
+            msgElement.classList.add('message');
+            if (isLocal) {
+                msgElement.classList.add('local');
+            } else {
+                msgElement.classList.add('remote');
+            }
+            chatMessages.appendChild(msgElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        sendMessageBtn.addEventListener('click', () => {
+            const message = chatInput.value;
+            if (message.trim() !== '') {
+                appendMessage(message);
+                chatInput.value = '';
+                if (dataConnection) {
+                    dataConnection.send(message);
+                }
+            }
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessageBtn.click();
+            }
+        });
+
+
     </script>
 </body>
 </html>
