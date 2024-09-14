@@ -375,6 +375,15 @@
             getLocalStream().then(() => {
                 peer = new Peer();
                 peer.on('open', id => {
+                    roomCodeDisplay.innerHTML = `
+                        Room Code: ${id}
+                        <span class="icon-btn copy-icon" id="copyBtn"></span>
+                        <span class="icon-btn share-icon" id="shareBtn"></span>
+                    `;
+                    
+                    // Add event listeners to copy and share icons
+                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
+                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
                     showMessageButtons();
                 });
 
@@ -470,7 +479,14 @@
                 getLocalStream().then(() => {
                     peer = new Peer();  // Create PeerJS instance for the host
                     peer.on('open', id => {
-                        roomCodeDisplay.innerHTML = `Room Code: ${id}`;
+                        roomCodeDisplay.innerHTML = `Room Code: ${id}
+                        Room Code: ${id}
+                        <span class="icon-btn copy-icon" id="copyBtn"></span>
+                        <span class="icon-btn share-icon" id="shareBtn"></span>
+                        `;
+                         // Add event listeners to copy and share icons
+                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
+                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
                     });
 
                     // Listen for incoming calls from joiners
