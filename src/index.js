@@ -40,30 +40,53 @@
                 });
         }
 
-        // Create a room (Host)
-        createRoomBtn.addEventListener('click', () => {
-            getLocalStream().then(() => {
-                peer = new Peer(); // Create a PeerJS instance
-                peer.on('open', id => {
-                    roomCodeDisplay.innerHTML = `
-                        Room Code: ${id}
-                        <span class="icon-btn copy-icon" id="copyBtn"></span>
-                        <span class="icon-btn share-icon" id="shareBtn"></span>
-                    `;
-                    
-                    // Add event listeners to copy and share icons
-                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
-                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
-                });
+// Create a room (Host)
+createRoomBtn.addEventListener('click', () => {
+    getLocalStream().then(() => {
+        peer = new Peer(); // Create a PeerJS instance
 
-                peer.on('call', incomingCall => {
-                    incomingCall.answer(localStream);  // Answer incoming call
-                    incomingCall.on('stream', stream => {
-                        remoteVideo.srcObject = stream;
-                    });
+        // When the peer connection opens, handle room creation
+        peer.on('open', id => {
+            showMessageButtons();
+            // Uncomment this block if you want to display the room code and add functionality for copy/share.
+            // roomCodeDisplay.innerHTML = `
+            //     Room Code: ${id}
+            //     <span class="icon-btn copy-icon" id="copyBtn"></span>
+            //     <span class="icon-btn share-icon" id="shareBtn"></span>
+            // `;
+            
+            // Add event listeners to copy and share icons
+            // document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
+            // document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
+        });
+
+        // Handle incoming data connections (for messaging)
+        peer.on('connection', conn => {
+            dataConnection = conn; // Store the data connection object
+
+            // Ensure the data connection is open before allowing messages
+            dataConnection.on('open', () => {
+                dataConnection.on('data', message => {
+                    appendMessage(message, false); // Display remote message
                 });
             });
         });
+
+        // Handle incoming video calls
+        peer.on('call', incomingCall => {
+            incomingCall.answer(localStream); // Answer the call with the local stream
+            incomingCall.on('stream', stream => {
+                remoteVideo.srcObject = stream; // Display the remote stream
+            });
+
+            // Store the current call for later use (e.g., ending the call)
+            currentCall = incomingCall;
+        });
+    });
+});
+
+
+
 
         // Join a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
@@ -150,15 +173,7 @@
         // Modify the existing event listeners for room creation and joining
 
         // When user creates a room (Host)
-        createRoomBtn.addEventListener('click', () => {
-            getLocalStream().then(() => {
-                peer = new Peer(); // Create PeerJS instance
-                peer.on('open', id => {
-                    // Show the message buttons when room is created
-                    showMessageButtons();
-                });
-            });
-        });
+       
 
         // When user joins a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
@@ -229,32 +244,7 @@
         }
 
         // When user creates a room (Host)
-        createRoomBtn.addEventListener('click', () => {
-            getLocalStream().then(() => {
-                peer = new Peer();
-                peer.on('open', id => {
-                    roomCodeDisplay.innerHTML = `
-                        Room Code: ${id}
-                        <span class="icon-btn copy-icon" id="copyBtn"></span>
-                        <span class="icon-btn share-icon" id="shareBtn"></span>
-                    `;
-                    
-                    // Add event listeners to copy and share icons
-                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
-                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
-                    showMessageButtons();
-                });
-
-                // Handle incoming data connection for chat
-                peer.on('connection', (conn) => {
-                    dataConnection = conn;
-                    dataConnection.on('data', (message) => {
-                        appendMessage(message, false); // Display remote message
-                    });
-                });
-            });
-        });
-
+       
         // When user joins a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
             const roomId = roomCodeInput.value;
@@ -333,32 +323,7 @@
             }
 
             // Function for creating a room (host)
-            createRoomBtn.addEventListener('click', () => {
-                getLocalStream().then(() => {
-                    peer = new Peer();  // Create PeerJS instance for the host
-                    peer.on('open', id => {
-                        roomCodeDisplay.innerHTML = `Room Code: ${id}
-                        Room Code: ${id}
-                        <span class="icon-btn copy-icon" id="copyBtn"></span>
-                        <span class="icon-btn share-icon" id="shareBtn"></span>
-                        `;
-                         // Add event listeners to copy and share icons
-                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
-                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
-                    });
-
-                    // Listen for incoming calls from joiners
-                    peer.on('call', incomingCall => {
-                        incomingCall.answer(localStream);  // Answer with the host's local stream
-                        incomingCall.on('stream', stream => {
-                            remoteVideo.srcObject = stream;  // Display the remote stream
-                        });
-
-                        // Store the current call for later use (e.g., ending the call)
-                        currentCall = incomingCall;
-                    });
-                });
-            });
+           
 
             // Function for joining a room (joiner)
             joinRoomBtn.addEventListener('click', () => {
@@ -416,40 +381,7 @@
 
         // UPdate                                                 Update for chat
         // When user creates a room (Host)
-        createRoomBtn.addEventListener('click', () => {
-            getLocalStream().then(() => {
-                peer = new Peer();
-                peer.on('open', id => {
-                    roomCodeDisplay.innerHTML = `Room Code: ${id}
-                    <span class="icon-btn copy-icon" id="copyBtn"></span>
-                    <span class="icon-btn share-icon" id="shareBtn"></span>
-                    `;
-                    document.getElementById('copyBtn').addEventListener('click', () => copyToClipboard(id));
-                    document.getElementById('shareBtn').addEventListener('click', () => shareRoomCode(id));
-                });
-
-                // Listen for incoming data connections (for messaging)
-                peer.on('connection', (conn) => {
-                    dataConnection = conn;
-
-                    // Ensure the data connection is open before allowing messages
-                    dataConnection.on('open', () => {
-                        dataConnection.on('data', (message) => {
-                            appendMessage(message, false); // Display remote message
-                        });
-                    });
-                });
-
-                // Listen for incoming calls (for video)
-                peer.on('call', incomingCall => {
-                    incomingCall.answer(localStream);
-                    incomingCall.on('stream', stream => {
-                        remoteVideo.srcObject = stream;
-                    });
-                });
-            });
-        });
-
+       
         // When user joins a room (Joiner)
         joinRoomBtn.addEventListener('click', () => {
             const roomId = roomCodeInput.value;
@@ -493,5 +425,5 @@
         });
 
         document.getElementById('imageBtn').onclick = function() {
-            window.location.href = 'https://www.youtube.com/@swadesisamar?sub_confirmation=1','_blank';
+            window.location.href = 'https://www.youtube.com/@swadesidev?sub_confirmation=1','_blank';
         };
