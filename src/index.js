@@ -1,1 +1,466 @@
-const localVideo=document.getElementById("localVideo"),remoteVideo=document.getElementById("remoteVideo"),createRoomBtn=document.getElementById("createRoomBtn"),roomCodeDisplay=document.getElementById("roomCodeDisplay"),roomCodeInput=document.getElementById("roomCodeInput"),joinRoomBtn=document.getElementById("joinRoomBtn"),errorDisplay=document.getElementById("error"),muteAudioBtn=document.getElementById("muteAudioBtn"),muteVideoBtn=document.getElementById("muteVideoBtn"),zoomBtn=document.getElementById("zoomBtn"),videoContainer=document.getElementById("videoContainer"),minimizeBtn=document.getElementById("fullscreenMinimizeBtn"),controls=document.getElementById("controls"),fullscreenControls=document.getElementById("fullscreenControls"),menuBtn=document.getElementById("menuBtn"),fullscreenMuteAudioBtn=document.getElementById("fullscreenMuteAudioBtn"),fullscreenMuteVideoBtn=document.getElementById("fullscreenMuteVideoBtn"),colorBtn=document.getElementById("colorBtn"),colorPicker=document.getElementById("colorPicker");let localStream,peer,call,audioEnabled=!0,videoEnabled=!0;function getLocalStream(){return navigator.mediaDevices.getUserMedia({video:!0,audio:!0}).then(e=>{localStream=e,localVideo.srcObject=e,errorDisplay.textContent=""}).catch(e=>{errorDisplay.textContent="Error accessing camera or microphone: "+e.message})}function toggleAudio(){audioEnabled=!audioEnabled,localStream.getAudioTracks()[0].enabled=audioEnabled,muteAudioBtn.textContent=audioEnabled?"\uD83D\uDD0A":"\uD83D\uDD07",fullscreenMuteAudioBtn.textContent=audioEnabled?"\uD83D\uDD0A":"\uD83D\uDD07"}function toggleVideo(){videoEnabled=!videoEnabled,localStream.getVideoTracks()[0].enabled=videoEnabled,muteVideoBtn.textContent=videoEnabled?"\uD83D\uDCF7":"\uD83D\uDCF5",fullscreenMuteVideoBtn.textContent=videoEnabled?"\uD83D\uDCF7":"\uD83D\uDCF5"}createRoomBtn.addEventListener("click",()=>{getLocalStream().then(()=>{(peer=new Peer).on("open",e=>{showMessageButtons()}),peer.on("connection",e=>{(dataConnection=e).on("open",()=>{dataConnection.on("data",e=>{appendMessage(e,!1)})})}),peer.on("call",e=>{e.answer(localStream),e.on("stream",e=>{remoteVideo.srcObject=e}),currentCall=e})})}),joinRoomBtn.addEventListener("click",()=>{let e=roomCodeInput.value;e?getLocalStream().then(()=>{(call=(peer=new Peer).call(e,localStream)).on("stream",e=>{remoteVideo.srcObject=e})}):errorDisplay.textContent="Please enter a room code."}),muteAudioBtn.addEventListener("click",toggleAudio),fullscreenMuteAudioBtn.addEventListener("click",toggleAudio),muteVideoBtn.addEventListener("click",toggleVideo),fullscreenMuteVideoBtn.addEventListener("click",toggleVideo),zoomBtn.addEventListener("click",()=>{videoContainer.classList.add("zoomed"),controls.style.display="none",menuBtn.style.display="block",fullscreenControls.classList.remove("show")}),minimizeBtn.addEventListener("click",()=>{videoContainer.classList.remove("zoomed"),fullscreenControls.style.display="none",controls.style.display="flex",menuBtn.style.display="none",videoContainer.style.backgroundColor=""}),menuBtn.addEventListener("click",()=>{fullscreenControls.classList.toggle("show")}),colorBtn.addEventListener("click",()=>{colorPicker.click()}),colorPicker.addEventListener("input",e=>{videoContainer.style.backgroundColor=e.target.value});const messageBtn=document.getElementById("messageBtn"),fullscreenMessageBtn=document.getElementById("fullscreenMessageBtn");function showMessageButtons(){messageBtn.style.display="block",fullscreenMessageBtn.style.display="block"}joinRoomBtn.addEventListener("click",()=>{let e=roomCodeInput.value;e?getLocalStream().then(()=>{(call=(peer=new Peer).call(e,localStream)).on("stream",e=>{remoteVideo.srcObject=e}),showMessageButtons()}):errorDisplay.textContent="Please enter a room code."});const chatBox=document.getElementById("chatBox"),chatMessages=document.getElementById("chatMessages"),chatInput=document.getElementById("chatInput"),sendMessageBtn=document.getElementById("sendMessageBtn"),closeChatBtn=document.getElementById("closeChatBtn");function toggleChatBox(){chatBox.style.display="none"===chatBox.style.display?"block":"none"}messageBtn.addEventListener("click",toggleChatBox),fullscreenMessageBtn.addEventListener("click",toggleChatBox),closeChatBtn.addEventListener("click",()=>{chatBox.style.display="none"}),document.addEventListener("click",e=>{chatBox.contains(e.target)||messageBtn.contains(e.target)||fullscreenMessageBtn.contains(e.target)||(chatBox.style.display="none")}),chatBox.addEventListener("click",e=>{e.stopPropagation()});let dataConnection;function appendMessage(e,t=!0){let n=document.createElement("div");n.textContent=e,n.style.textAlign=t?"right":"left",n.style.padding="5px",n.style.marginBottom="5px",n.style.borderRadius="5px",n.style.backgroundColor=t?"#007bff":"#f1f1f1",n.style.color=t?"white":"black",chatMessages.appendChild(n),chatMessages.scrollTop=chatMessages.scrollHeight}function appendMessage(e,t=!0){let n=document.createElement("div");n.textContent=e,n.classList.add("message"),t?n.classList.add("local"):n.classList.add("remote"),chatMessages.appendChild(n),chatMessages.scrollTop=chatMessages.scrollHeight}joinRoomBtn.addEventListener("click",()=>{let e=roomCodeInput.value;e&&getLocalStream().then(()=>{(call=(peer=new Peer).call(e,localStream)).on("stream",e=>{remoteVideo.srcObject=e}),(dataConnection=peer.connect(e)).on("data",e=>{appendMessage(e,!1)})})}),sendMessageBtn.addEventListener("click",()=>{let e=chatInput.value;""!==e.trim()&&(appendMessage(e),chatInput.value="",dataConnection&&dataConnection.send(e))}),chatInput.addEventListener("keypress",e=>{"Enter"===e.key&&sendMessageBtn.click()});let currentCall;function getLocalStream(){return navigator.mediaDevices.getUserMedia({video:!0,audio:!0}).then(e=>{localStream=e,localVideo.srcObject=e,errorDisplay.textContent=""}).catch(e=>{errorDisplay.textContent="Error accessing camera or microphone: "+e.message})}function copyToClipboard(e){navigator.clipboard.writeText(e).then(()=>{alert("Room code copied to clipboard!")}).catch(e=>{alert("Failed to copy code: "+e)})}function shareRoomCode(e){navigator.share?navigator.share({title:"Hi buddy, join my video call using this room code",text:`Here's the room code: ${e}`,url:window.location.href}).then(()=>{console.log("Shared successfully")}).catch(e=>{alert("Failed to share code: "+e)}):alert("Sharing is not supported on your device.")}joinRoomBtn.addEventListener("click",()=>{let e=roomCodeInput.value;e?getLocalStream().then(()=>{(peer=new Peer).on("open",t=>{let n=peer.call(e,localStream);n.on("stream",e=>{remoteVideo.srcObject=e}),currentCall=n}),peer.on("error",e=>{errorDisplay.textContent="Error: "+e.message})}):errorDisplay.textContent="Please enter a room code."}),joinRoomBtn.addEventListener("click",()=>{let e=roomCodeInput.value;e?getLocalStream().then(()=>{(peer=new Peer).on("open",()=>{(call=peer.call(e,localStream)).on("stream",e=>{remoteVideo.srcObject=e}),(dataConnection=peer.connect(e)).on("open",()=>{dataConnection.on("data",e=>{appendMessage(e,!1)})}),peer.on("connection",e=>{(dataConnection=e).on("open",()=>{dataConnection.on("data",e=>{appendMessage(e,!1)})})})})}):errorDisplay.textContent="Please enter a room code."}),document.getElementById("imageBtn").onclick=function(){window.location.href="https://www.youtube.com/@swadesidev?sub_confirmation=1"};
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const createRoomBtn = document.getElementById("createRoomBtn");
+const roomCodeDisplay = document.getElementById("roomCodeDisplay");
+const roomCodeInput = document.getElementById("roomCodeInput");
+const joinRoomBtn = document.getElementById("joinRoomBtn");
+const errorDisplay = document.getElementById("error");
+const muteAudioBtn = document.getElementById("muteAudioBtn");
+const muteVideoBtn = document.getElementById("muteVideoBtn");
+const zoomBtn = document.getElementById("zoomBtn");
+const videoContainer = document.getElementById("videoContainer");
+const minimizeBtn = document.getElementById("fullscreenMinimizeBtn");
+const controls = document.getElementById("controls");
+const fullscreenControls = document.getElementById("fullscreenControls");
+const menuBtn = document.getElementById("menuBtn");
+const fullscreenMuteAudioBtn = document.getElementById("fullscreenMuteAudioBtn");
+const fullscreenMuteVideoBtn = document.getElementById("fullscreenMuteVideoBtn");
+const colorBtn = document.getElementById("colorBtn");
+const colorPicker = document.getElementById("colorPicker");
+const messageBtn = document.getElementById("messageBtn");
+const fullscreenMessageBtn = document.getElementById("fullscreenMessageBtn");
+const chatBox = document.getElementById("chatBox");
+const chatMessages = document.getElementById("chatMessages");
+const chatInput = document.getElementById("chatInput");
+const sendMessageBtn = document.getElementById("sendMessageBtn");
+const closeChatBtn = document.getElementById("closeChatBtn");
+const imageBtn = document.getElementById("imageBtn");
+
+let localStream;
+let peer;
+let currentCall;
+let dataConnection;
+let currentRoomId = "";
+let connectedRoomId = "";
+let audioEnabled = true;
+let videoEnabled = true;
+let isCreatingRoom = false;
+let isJoiningRoom = false;
+
+function setError(message = "") {
+  errorDisplay.textContent = message;
+}
+
+async function getLocalStream() {
+  if (localStream) {
+    return localStream;
+  }
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    localVideo.srcObject = localStream;
+    setError();
+    return localStream;
+  } catch (error) {
+    setError(`Error accessing camera or microphone: ${error.message}`);
+    throw error;
+  }
+}
+
+function updateAudioButtons() {
+  const icon = audioEnabled ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+  muteAudioBtn.textContent = icon;
+  fullscreenMuteAudioBtn.textContent = icon;
+}
+
+function updateVideoButtons() {
+  const icon = videoEnabled ? "\uD83D\uDCF7" : "\uD83D\uDCF5";
+  muteVideoBtn.textContent = icon;
+  fullscreenMuteVideoBtn.textContent = icon;
+}
+
+function toggleAudio() {
+  if (!localStream) {
+    return;
+  }
+
+  audioEnabled = !audioEnabled;
+  localStream.getAudioTracks().forEach((track) => {
+    track.enabled = audioEnabled;
+  });
+  updateAudioButtons();
+}
+
+function toggleVideo() {
+  if (!localStream) {
+    return;
+  }
+
+  videoEnabled = !videoEnabled;
+  localStream.getVideoTracks().forEach((track) => {
+    track.enabled = videoEnabled;
+  });
+  updateVideoButtons();
+}
+
+function showMessageButtons() {
+  messageBtn.style.display = "block";
+  fullscreenMessageBtn.style.display = "block";
+}
+
+function toggleChatBox() {
+  chatBox.style.display = chatBox.style.display === "none" ? "block" : "none";
+}
+
+function appendMessage(message, isLocal = true) {
+  const messageNode = document.createElement("div");
+  messageNode.textContent = message;
+  messageNode.classList.add("message");
+  messageNode.classList.add(isLocal ? "local" : "remote");
+  chatMessages.appendChild(messageNode);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function bindDataConnection(connection) {
+  dataConnection = connection;
+
+  dataConnection.on("open", () => {
+    showMessageButtons();
+  });
+
+  dataConnection.on("data", (message) => {
+    appendMessage(String(message), false);
+  });
+
+  dataConnection.on("close", () => {
+    if (dataConnection === connection) {
+      dataConnection = null;
+    }
+  });
+}
+
+function attachCallHandlers(activeCall) {
+  if (currentCall && currentCall !== activeCall) {
+    currentCall.close();
+  }
+
+  currentCall = activeCall;
+
+  currentCall.on("stream", (remoteStream) => {
+    remoteVideo.srcObject = remoteStream;
+  });
+
+  currentCall.on("close", () => {
+    if (currentCall === activeCall) {
+      currentCall = null;
+      remoteVideo.srcObject = null;
+      connectedRoomId = "";
+    }
+  });
+}
+
+function createPeer() {
+  peer = new Peer();
+
+  peer.on("call", (incomingCall) => {
+    incomingCall.answer(localStream);
+    attachCallHandlers(incomingCall);
+    showMessageButtons();
+  });
+
+  peer.on("connection", (connection) => {
+    bindDataConnection(connection);
+  });
+
+  peer.on("error", (error) => {
+    setError(`Error: ${error.message}`);
+    isCreatingRoom = false;
+    isJoiningRoom = false;
+    createRoomBtn.disabled = false;
+    joinRoomBtn.disabled = false;
+    createRoomBtn.textContent = currentRoomId ? "Room Ready" : "Create Room";
+    joinRoomBtn.textContent = "Join Room";
+  });
+
+  peer.on("disconnected", () => {
+    connectedRoomId = "";
+  });
+
+  return peer;
+}
+
+function ensurePeerReady() {
+  if (peer && peer.open) {
+    return Promise.resolve(peer);
+  }
+
+  if (!peer || peer.destroyed) {
+    createPeer();
+  }
+
+  return new Promise((resolve, reject) => {
+    const handleOpen = () => {
+      cleanup();
+      resolve(peer);
+    };
+    const handleError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      peer.off("open", handleOpen);
+      peer.off("error", handleError);
+    };
+
+    peer.on("open", handleOpen);
+    peer.on("error", handleError);
+  });
+}
+
+function buildInviteUrl(roomId) {
+  const inviteUrl = new URL(window.location.origin + window.location.pathname);
+  inviteUrl.searchParams.set("room", roomId);
+  return inviteUrl.toString();
+}
+
+function extractRoomId(value) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  if (trimmedValue.includes("room=")) {
+    try {
+      const parsedUrl = new URL(trimmedValue, window.location.origin);
+      return parsedUrl.searchParams.get("room") || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  return trimmedValue;
+}
+
+async function copyToClipboard(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    setError("Invite link copied to clipboard.");
+  } catch (error) {
+    setError(`Failed to copy invite link: ${error.message}`);
+  }
+}
+
+async function shareInvite(roomId) {
+  const inviteUrl = buildInviteUrl(roomId);
+
+  if (!navigator.share) {
+    await copyToClipboard(inviteUrl);
+    return;
+  }
+
+  try {
+    await navigator.share({
+      title: "Join my My Buddy call",
+      text: "Open this link to join my room directly.",
+      url: inviteUrl,
+    });
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      setError(`Failed to share invite link: ${error.message}`);
+    }
+  }
+}
+
+function renderRoomInvite(roomId) {
+  const inviteUrl = buildInviteUrl(roomId);
+  roomCodeDisplay.innerHTML = "";
+
+  const label = document.createElement("p");
+  label.textContent = "Share this link to join directly:";
+
+  const link = document.createElement("a");
+  link.href = inviteUrl;
+  link.textContent = inviteUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+
+  const actions = document.createElement("div");
+  actions.className = "room-actions";
+
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.textContent = "Copy Link";
+  copyButton.addEventListener("click", () => {
+    copyToClipboard(inviteUrl);
+  });
+
+  const shareButton = document.createElement("button");
+  shareButton.type = "button";
+  shareButton.textContent = "Share Link";
+  shareButton.addEventListener("click", () => {
+    shareInvite(roomId);
+  });
+
+  actions.appendChild(copyButton);
+  actions.appendChild(shareButton);
+  roomCodeDisplay.appendChild(label);
+  roomCodeDisplay.appendChild(link);
+  roomCodeDisplay.appendChild(actions);
+}
+
+async function createRoom() {
+  if (isCreatingRoom) {
+    return;
+  }
+
+  if (currentRoomId) {
+    renderRoomInvite(currentRoomId);
+    return;
+  }
+
+  isCreatingRoom = true;
+  createRoomBtn.disabled = true;
+  createRoomBtn.textContent = "Creating...";
+
+  try {
+    await getLocalStream();
+    await ensurePeerReady();
+    currentRoomId = peer.id;
+    roomCodeInput.value = currentRoomId;
+    renderRoomInvite(currentRoomId);
+    showMessageButtons();
+    createRoomBtn.textContent = "Room Ready";
+    setError();
+  } catch (error) {
+    setError(`Could not create room: ${error.message}`);
+    createRoomBtn.textContent = "Create Room";
+    createRoomBtn.disabled = false;
+  } finally {
+    isCreatingRoom = false;
+  }
+}
+
+async function joinRoom(roomValue = roomCodeInput.value) {
+  const roomId = extractRoomId(roomValue);
+
+  if (!roomId) {
+    setError("Please enter a room code or invite link.");
+    return;
+  }
+
+  if (isJoiningRoom || connectedRoomId === roomId) {
+    return;
+  }
+
+  isJoiningRoom = true;
+  joinRoomBtn.disabled = true;
+  joinRoomBtn.textContent = "Joining...";
+
+  try {
+    await getLocalStream();
+    await ensurePeerReady();
+
+    roomCodeInput.value = roomId;
+
+    attachCallHandlers(peer.call(roomId, localStream));
+
+    const connection = peer.connect(roomId);
+    bindDataConnection(connection);
+
+    connectedRoomId = roomId;
+    showMessageButtons();
+    setError();
+  } catch (error) {
+    connectedRoomId = "";
+    setError(`Could not join room: ${error.message}`);
+  } finally {
+    isJoiningRoom = false;
+    joinRoomBtn.disabled = false;
+    joinRoomBtn.textContent = "Join Room";
+  }
+}
+
+function maybeJoinFromSharedLink() {
+  const roomId = new URLSearchParams(window.location.search).get("room");
+
+  if (!roomId) {
+    return;
+  }
+
+  roomCodeInput.value = roomId;
+  joinRoom(roomId);
+}
+
+createRoomBtn.addEventListener("click", createRoom);
+joinRoomBtn.addEventListener("click", () => {
+  joinRoom();
+});
+muteAudioBtn.addEventListener("click", toggleAudio);
+fullscreenMuteAudioBtn.addEventListener("click", toggleAudio);
+muteVideoBtn.addEventListener("click", toggleVideo);
+fullscreenMuteVideoBtn.addEventListener("click", toggleVideo);
+zoomBtn.addEventListener("click", () => {
+  videoContainer.classList.add("zoomed");
+  controls.style.display = "none";
+  menuBtn.style.display = "block";
+  fullscreenControls.classList.remove("show");
+});
+minimizeBtn.addEventListener("click", () => {
+  videoContainer.classList.remove("zoomed");
+  fullscreenControls.style.display = "none";
+  controls.style.display = "flex";
+  menuBtn.style.display = "none";
+  videoContainer.style.backgroundColor = "";
+});
+menuBtn.addEventListener("click", () => {
+  fullscreenControls.classList.toggle("show");
+});
+colorBtn.addEventListener("click", () => {
+  colorPicker.click();
+});
+colorPicker.addEventListener("input", (event) => {
+  videoContainer.style.backgroundColor = event.target.value;
+});
+messageBtn.addEventListener("click", toggleChatBox);
+fullscreenMessageBtn.addEventListener("click", toggleChatBox);
+closeChatBtn.addEventListener("click", () => {
+  chatBox.style.display = "none";
+});
+document.addEventListener("click", (event) => {
+  if (
+    chatBox.contains(event.target) ||
+    messageBtn.contains(event.target) ||
+    fullscreenMessageBtn.contains(event.target)
+  ) {
+    return;
+  }
+
+  chatBox.style.display = "none";
+});
+chatBox.addEventListener("click", (event) => {
+  event.stopPropagation();
+});
+sendMessageBtn.addEventListener("click", () => {
+  const message = chatInput.value.trim();
+
+  if (!message) {
+    return;
+  }
+
+  appendMessage(message);
+  chatInput.value = "";
+
+  if (dataConnection && dataConnection.open) {
+    dataConnection.send(message);
+  }
+});
+chatInput.addEventListener("keypress", (event) => {
+  if (event.key === "Enter") {
+    sendMessageBtn.click();
+  }
+});
+
+if (imageBtn) {
+  imageBtn.addEventListener("click", () => {
+    window.location.href = "https://www.youtube.com/@swadesidev?sub_confirmation=1";
+  });
+}
+
+updateAudioButtons();
+updateVideoButtons();
+chatBox.style.display = "none";
+maybeJoinFromSharedLink();
