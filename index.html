@@ -76,21 +76,11 @@
         <main class="workspace">
             <section class="control-panel">
                 <article class="panel-card">
-                    <p class="panel-kicker">Host</p>
-                    <h2>Start a room</h2>
-                    <p class="panel-copy">Create one private room and get a direct invite link ready to share.</p>
+                    <p id="roomPanelKicker" class="panel-kicker">Host</p>
+                    <h2 id="roomPanelTitle">Start a room</h2>
+                    <p id="roomPanelCopy" class="panel-copy">Create one private room and get a direct invite link ready to share.</p>
                     <button id="createRoomBtn" class="primary-action" type="button">Create Room</button>
                     <div id="roomCodeDisplay" class="room-output"></div>
-                </article>
-
-                <article class="panel-card">
-                    <p class="panel-kicker">Guest</p>
-                    <h2>Join fast</h2>
-                    <p class="panel-copy">Paste a room code or the full shared invite link and jump straight in.</p>
-                    <div id="joinControls" class="join-controls">
-                        <input id="roomCodeInput" placeholder="Enter room code or invite link" autocomplete="off">
-                        <button id="joinRoomBtn" class="secondary-action" type="button">Join Room</button>
-                    </div>
                 </article>
 
                 <p id="error" class="status-message" aria-live="polite"></p>

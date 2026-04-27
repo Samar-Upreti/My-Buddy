@@ -1,9 +1,10 @@
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const createRoomBtn = document.getElementById("createRoomBtn");
+const roomPanelKicker = document.getElementById("roomPanelKicker");
+const roomPanelTitle = document.getElementById("roomPanelTitle");
+const roomPanelCopy = document.getElementById("roomPanelCopy");
 const roomCodeDisplay = document.getElementById("roomCodeDisplay");
-const roomCodeInput = document.getElementById("roomCodeInput");
-const joinRoomBtn = document.getElementById("joinRoomBtn");
 const errorDisplay = document.getElementById("error");
 const muteAudioBtn = document.getElementById("muteAudioBtn");
 const muteVideoBtn = document.getElementById("muteVideoBtn");
@@ -41,7 +42,7 @@ let isJoiningRoom = false;
 let remoteMediaActive = false;
 let dataConnectionOpen = false;
 let remoteMediaStream = null;
-const sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
+let sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
 const pendingPlaybackRetryVideos = new WeakSet();
 const icons = {
   hangUp: '<i class="fa-solid fa-phone-slash" aria-hidden="true"></i>',
@@ -206,11 +207,57 @@ function setControlVisibility(button, isVisible) {
   button.style.display = isVisible ? "inline-flex" : "none";
 }
 
+function syncRoomEntryUi() {
+  if (sharedRoomId) {
+    roomPanelKicker.textContent = "Invite";
+    roomPanelTitle.textContent = "Join room";
+    roomPanelCopy.textContent =
+      "Open your camera and microphone, then join the shared room with one tap.";
+
+    if (isJoiningRoom) {
+      createRoomBtn.disabled = true;
+      createRoomBtn.textContent = "Joining...";
+      return;
+    }
+
+    if (connectedRoomId === sharedRoomId && (dataConnectionOpen || remoteMediaActive || currentCall)) {
+      createRoomBtn.disabled = true;
+      createRoomBtn.textContent = "Connected";
+      return;
+    }
+
+    createRoomBtn.disabled = false;
+    createRoomBtn.textContent = "Join Call";
+    return;
+  }
+
+  roomPanelKicker.textContent = "Host";
+  roomPanelTitle.textContent = "Start a room";
+  roomPanelCopy.textContent = "Create one private room and get a direct invite link ready to share.";
+
+  if (isCreatingRoom) {
+    createRoomBtn.disabled = true;
+    createRoomBtn.textContent = "Creating...";
+    return;
+  }
+
+  if (currentRoomId) {
+    createRoomBtn.disabled = true;
+    createRoomBtn.textContent = "Room Ready";
+    return;
+  }
+
+  createRoomBtn.disabled = false;
+  createRoomBtn.textContent = "Create Room";
+}
+
 function syncCallActionButtons() {
   setControlVisibility(messageBtn, dataConnectionOpen);
   setControlVisibility(fullscreenMessageBtn, dataConnectionOpen);
 
-  const showDisconnectButton = remoteMediaActive || dataConnectionOpen;
+  const showDisconnectButton = Boolean(
+    currentRoomId || connectedRoomId || remoteMediaActive || dataConnectionOpen || currentCall || isJoiningRoom,
+  );
   setControlVisibility(endCallBtn, showDisconnectButton);
   setControlVisibility(fullscreenEndCallBtn, showDisconnectButton);
 }
@@ -224,6 +271,7 @@ function setRemoteStream(stream) {
   remoteMediaActive = stream.getTracks().length > 0;
   attachStreamToVideo(remoteVideo, stream);
   syncCallActionButtons();
+  syncRoomEntryUi();
 }
 
 function clearRemoteStream() {
@@ -231,6 +279,7 @@ function clearRemoteStream() {
   remoteMediaActive = false;
   remoteVideo.srcObject = null;
   syncCallActionButtons();
+  syncRoomEntryUi();
 }
 
 function toggleAudio() {
@@ -259,13 +308,16 @@ function toggleVideo() {
 
 function clearInviteQuery() {
   const currentUrl = new URL(window.location.href);
+  sharedRoomId = "";
 
   if (!currentUrl.searchParams.has("room")) {
+    syncRoomEntryUi();
     return;
   }
 
   currentUrl.searchParams.delete("room");
   window.history.replaceState({}, "", currentUrl.toString());
+  syncRoomEntryUi();
 }
 
 function toggleChatBox() {
@@ -288,19 +340,21 @@ function bindDataConnection(connection) {
     dataConnectionOpen = true;
     connectedRoomId = connection.peer || connectedRoomId;
     syncCallActionButtons();
+    syncRoomEntryUi();
   }
 
-  dataConnection.on("open", () => {
+  connection.on("open", () => {
     dataConnectionOpen = true;
     connectedRoomId = connection.peer || connectedRoomId;
     syncCallActionButtons();
+    syncRoomEntryUi();
   });
 
-  dataConnection.on("data", (message) => {
+  connection.on("data", (message) => {
     appendMessage(String(message), false);
   });
 
-  dataConnection.on("close", () => {
+  connection.on("close", () => {
     if (dataConnection === connection) {
       dataConnection = null;
     }
@@ -312,6 +366,7 @@ function bindDataConnection(connection) {
     }
 
     syncCallActionButtons();
+    syncRoomEntryUi();
   });
 }
 
@@ -377,6 +432,7 @@ function closeDataConnection() {
   if (!dataConnection) {
     dataConnectionOpen = false;
     syncCallActionButtons();
+    syncRoomEntryUi();
     return;
   }
 
@@ -394,6 +450,7 @@ function closeDataConnection() {
   }
 
   syncCallActionButtons();
+  syncRoomEntryUi();
 }
 
 function attachCallHandlers(activeCall) {
@@ -493,11 +550,14 @@ function attachCallHandlers(activeCall) {
     if (!dataConnectionOpen) {
       connectedRoomId = "";
     }
+
+    syncRoomEntryUi();
   });
 
   currentCall.on("error", (error) => {
     console.warn("Media connection failed", error);
     setStatus(`Call error: ${error.message}`, "error");
+    syncRoomEntryUi();
   });
 }
 
@@ -508,6 +568,7 @@ function closeCurrentCall() {
     if (!dataConnectionOpen) {
       connectedRoomId = "";
     }
+    syncRoomEntryUi();
     return;
   }
 
@@ -523,6 +584,8 @@ function closeCurrentCall() {
   if (!dataConnectionOpen) {
     connectedRoomId = "";
   }
+
+  syncRoomEntryUi();
 }
 
 function createPeer() {
@@ -560,11 +623,8 @@ function createPeer() {
     setStatus(`Error: ${error.message}`, "error");
     isCreatingRoom = false;
     isJoiningRoom = false;
-    createRoomBtn.disabled = false;
-    joinRoomBtn.disabled = false;
-    createRoomBtn.textContent = currentRoomId ? "Room Ready" : "Create Room";
-    joinRoomBtn.textContent = "Join Room";
     syncCallActionButtons();
+    syncRoomEntryUi();
   });
 
   peer.on("disconnected", () => {
@@ -572,6 +632,7 @@ function createPeer() {
     dataConnectionOpen = false;
     remoteMediaActive = false;
     syncCallActionButtons();
+    syncRoomEntryUi();
   });
 
   return peer;
@@ -772,13 +833,9 @@ function resetRoomUi() {
   connectedRoomId = "";
   dataConnectionOpen = false;
   roomCodeDisplay.innerHTML = "";
-  roomCodeInput.value = "";
-  createRoomBtn.disabled = false;
-  createRoomBtn.textContent = "Create Room";
-  joinRoomBtn.disabled = false;
-  joinRoomBtn.textContent = "Join Room";
   chatBox.style.display = "none";
   syncCallActionButtons();
+  syncRoomEntryUi();
 }
 
 function endCallSession() {
@@ -803,31 +860,29 @@ async function createRoom() {
   }
 
   isCreatingRoom = true;
-  createRoomBtn.disabled = true;
-  createRoomBtn.textContent = "Creating...";
+  syncRoomEntryUi();
 
   try {
     await getLocalStream();
     await ensurePeerReady();
     currentRoomId = peer.id;
-    roomCodeInput.value = currentRoomId;
     renderRoomInvite(currentRoomId);
-    createRoomBtn.textContent = "Room Ready";
+    syncCallActionButtons();
+    syncRoomEntryUi();
     setStatus("Room ready. Share the invite link below.", "success");
   } catch (error) {
     setStatus(`Could not create room: ${error.message}`, "error");
-    createRoomBtn.textContent = "Create Room";
-    createRoomBtn.disabled = false;
   } finally {
     isCreatingRoom = false;
+    syncRoomEntryUi();
   }
 }
 
-async function joinRoom(roomValue = roomCodeInput.value) {
+async function joinRoom(roomValue = sharedRoomId) {
   const roomId = extractRoomId(roomValue);
 
   if (!roomId) {
-    setStatus("Please enter a room code or invite link.", "error");
+    setStatus("Invite link is missing a valid room code.", "error");
     return;
   }
 
@@ -839,14 +894,13 @@ async function joinRoom(roomValue = roomCodeInput.value) {
   }
 
   isJoiningRoom = true;
-  joinRoomBtn.disabled = true;
-  joinRoomBtn.textContent = "Joining...";
+  syncCallActionButtons();
+  syncRoomEntryUi();
 
   try {
     await getLocalStream();
     await ensurePeerReady();
 
-    roomCodeInput.value = roomId;
     setStatus(`Joining room ${roomId}...`, "success");
 
     const outgoingCall = peer.call(roomId, localStream);
@@ -865,8 +919,8 @@ async function joinRoom(roomValue = roomCodeInput.value) {
     setStatus(`Could not join room: ${error.message}`, "error");
   } finally {
     isJoiningRoom = false;
-    joinRoomBtn.disabled = false;
-    joinRoomBtn.textContent = "Join Room";
+    syncCallActionButtons();
+    syncRoomEntryUi();
   }
 }
 
@@ -875,13 +929,18 @@ function maybeJoinFromSharedLink() {
     return;
   }
 
-  roomCodeInput.value = sharedRoomId;
-  setStatus("Invite link detected. Tap Join Room to start the call.", "success");
+  roomCodeDisplay.innerHTML = "";
+  syncRoomEntryUi();
+  setStatus("Invite link detected. Tap Join Call to start.", "success");
 }
 
-createRoomBtn.addEventListener("click", createRoom);
-joinRoomBtn.addEventListener("click", () => {
-  joinRoom();
+createRoomBtn.addEventListener("click", () => {
+  if (sharedRoomId) {
+    joinRoom(sharedRoomId);
+    return;
+  }
+
+  createRoom();
 });
 muteAudioBtn.addEventListener("click", toggleAudio);
 fullscreenMuteAudioBtn.addEventListener("click", toggleAudio);
@@ -960,5 +1019,6 @@ updateButtonIcon(minimizeBtn, icons.exitFocus, "Exit focus mode");
 updateButtonIcon(endCallBtn, icons.hangUp, "End call");
 updateButtonIcon(fullscreenEndCallBtn, icons.hangUp, "End call");
 chatBox.style.display = "none";
+syncRoomEntryUi();
 syncCallActionButtons();
 setTimeout(maybeJoinFromSharedLink, 0);

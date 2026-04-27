@@ -219,11 +219,6 @@ a {
   background: var(--brand-strong);
 }
 
-.join-controls {
-  display: grid;
-  gap: 12px;
-}
-
 input {
   width: 100%;
   border: 1px solid var(--line);
@@ -354,6 +349,10 @@ video {
   border-radius: calc(var(--radius-lg) - 6px);
   background: linear-gradient(180deg, #39445d, #1b2434);
   object-fit: cover;
+}
+
+#localVideo {
+  transform: scaleX(-1);
 }
 
 .control-dock {
