@@ -37,8 +37,17 @@ let videoEnabled = true;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
 
-function setError(message = "") {
+function setStatus(message = "", tone = "neutral") {
   errorDisplay.textContent = message;
+  errorDisplay.classList.remove("is-error", "is-success");
+
+  if (tone === "error") {
+    errorDisplay.classList.add("is-error");
+  }
+
+  if (tone === "success") {
+    errorDisplay.classList.add("is-success");
+  }
 }
 
 async function getLocalStream() {
@@ -52,24 +61,24 @@ async function getLocalStream() {
       audio: true,
     });
     localVideo.srcObject = localStream;
-    setError();
+    setStatus();
     return localStream;
   } catch (error) {
-    setError(`Error accessing camera or microphone: ${error.message}`);
+    setStatus(`Error accessing camera or microphone: ${error.message}`, "error");
     throw error;
   }
 }
 
 function updateAudioButtons() {
-  const icon = audioEnabled ? "\uD83D\uDD0A" : "\uD83D\uDD07";
-  muteAudioBtn.textContent = icon;
-  fullscreenMuteAudioBtn.textContent = icon;
+  const label = audioEnabled ? "Mic On" : "Mic Off";
+  muteAudioBtn.textContent = label;
+  fullscreenMuteAudioBtn.textContent = label;
 }
 
 function updateVideoButtons() {
-  const icon = videoEnabled ? "\uD83D\uDCF7" : "\uD83D\uDCF5";
-  muteVideoBtn.textContent = icon;
-  fullscreenMuteVideoBtn.textContent = icon;
+  const label = videoEnabled ? "Camera On" : "Camera Off";
+  muteVideoBtn.textContent = label;
+  fullscreenMuteVideoBtn.textContent = label;
 }
 
 function toggleAudio() {
@@ -166,7 +175,7 @@ function createPeer() {
   });
 
   peer.on("error", (error) => {
-    setError(`Error: ${error.message}`);
+    setStatus(`Error: ${error.message}`, "error");
     isCreatingRoom = false;
     isJoiningRoom = false;
     createRoomBtn.disabled = false;
@@ -238,9 +247,9 @@ function extractRoomId(value) {
 async function copyToClipboard(value) {
   try {
     await navigator.clipboard.writeText(value);
-    setError("Invite link copied to clipboard.");
+    setStatus("Invite link copied to clipboard.", "success");
   } catch (error) {
-    setError(`Failed to copy invite link: ${error.message}`);
+    setStatus(`Failed to copy invite link: ${error.message}`, "error");
   }
 }
 
@@ -260,7 +269,7 @@ async function shareInvite(roomId) {
     });
   } catch (error) {
     if (error.name !== "AbortError") {
-      setError(`Failed to share invite link: ${error.message}`);
+      setStatus(`Failed to share invite link: ${error.message}`, "error");
     }
   }
 }
@@ -324,9 +333,9 @@ async function createRoom() {
     renderRoomInvite(currentRoomId);
     showMessageButtons();
     createRoomBtn.textContent = "Room Ready";
-    setError();
+    setStatus("Room ready. Share the invite link below.", "success");
   } catch (error) {
-    setError(`Could not create room: ${error.message}`);
+    setStatus(`Could not create room: ${error.message}`, "error");
     createRoomBtn.textContent = "Create Room";
     createRoomBtn.disabled = false;
   } finally {
@@ -338,11 +347,14 @@ async function joinRoom(roomValue = roomCodeInput.value) {
   const roomId = extractRoomId(roomValue);
 
   if (!roomId) {
-    setError("Please enter a room code or invite link.");
+    setStatus("Please enter a room code or invite link.", "error");
     return;
   }
 
   if (isJoiningRoom || connectedRoomId === roomId) {
+    if (connectedRoomId === roomId) {
+      setStatus("You're already connected to this room.", "success");
+    }
     return;
   }
 
@@ -363,10 +375,10 @@ async function joinRoom(roomValue = roomCodeInput.value) {
 
     connectedRoomId = roomId;
     showMessageButtons();
-    setError();
+    setStatus("Connected. You're in the room.", "success");
   } catch (error) {
     connectedRoomId = "";
-    setError(`Could not join room: ${error.message}`);
+    setStatus(`Could not join room: ${error.message}`, "error");
   } finally {
     isJoiningRoom = false;
     joinRoomBtn.disabled = false;
