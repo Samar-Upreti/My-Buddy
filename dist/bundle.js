@@ -168,6 +168,64 @@ function bindDataConnection(connection) {
   });
 }
 
+function removeEventHandler(target, eventName, handler) {
+  if (!target) {
+    return;
+  }
+
+  if (typeof target.off === "function") {
+    target.off(eventName, handler);
+    return;
+  }
+
+  if (typeof target.removeListener === "function") {
+    target.removeListener(eventName, handler);
+  }
+}
+
+function waitForDataConnection(connection, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      removeEventHandler(connection, "open", handleOpen);
+      removeEventHandler(connection, "error", handleError);
+      removeEventHandler(connection, "close", handleClose);
+    };
+
+    const finish = (callback) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      callback();
+    };
+
+    const handleOpen = () => {
+      finish(() => resolve());
+    };
+
+    const handleError = (error) => {
+      finish(() => reject(error instanceof Error ? error : new Error(String(error))));
+    };
+
+    const handleClose = () => {
+      finish(() => reject(new Error("Room connection closed before it finished joining.")));
+    };
+
+    const timeoutId = setTimeout(() => {
+      finish(() => reject(new Error("Connection timed out while reaching the room.")));
+    }, timeoutMs);
+
+    connection.on("open", handleOpen);
+    connection.on("error", handleError);
+    connection.on("close", handleClose);
+  });
+}
+
 function closeDataConnection() {
   if (!dataConnection) {
     return;
@@ -522,15 +580,19 @@ async function joinRoom(roomValue = roomCodeInput.value) {
     roomCodeInput.value = roomId;
     setStatus(`Joining room ${roomId}...`, "success");
 
-    attachCallHandlers(peer.call(roomId, localStream));
+    const outgoingCall = peer.call(roomId, localStream);
+    attachCallHandlers(outgoingCall);
 
     const connection = peer.connect(roomId);
     bindDataConnection(connection);
+    await waitForDataConnection(connection);
 
     connectedRoomId = roomId;
     showMessageButtons();
     setStatus("Connected. You're in the room.", "success");
   } catch (error) {
+    closeDataConnection();
+    closeCurrentCall();
     connectedRoomId = "";
     setStatus(`Could not join room: ${error.message}`, "error");
   } finally {
