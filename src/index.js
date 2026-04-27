@@ -40,6 +40,7 @@ let isCreatingRoom = false;
 let isJoiningRoom = false;
 let remoteMediaActive = false;
 let dataConnectionOpen = false;
+let remoteMediaStream = null;
 const sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
 const pendingPlaybackRetryVideos = new WeakSet();
 const icons = {
@@ -97,6 +98,28 @@ function schedulePlaybackRetry(videoElement) {
   document.addEventListener("touchend", retryPlayback, { once: true });
 }
 
+function hasUsableLocalStream(stream) {
+  return (
+    stream instanceof MediaStream &&
+    stream.getTracks().length > 0 &&
+    stream.getTracks().every((track) => track.readyState === "live")
+  );
+}
+
+function applyLocalTrackPreferences(stream) {
+  if (!stream) {
+    return;
+  }
+
+  stream.getAudioTracks().forEach((track) => {
+    track.enabled = audioEnabled;
+  });
+
+  stream.getVideoTracks().forEach((track) => {
+    track.enabled = videoEnabled;
+  });
+}
+
 function attachStreamToVideo(videoElement, stream, { muted = false } = {}) {
   if (!videoElement || !stream) {
     return;
@@ -136,8 +159,14 @@ function attachStreamToVideo(videoElement, stream, { muted = false } = {}) {
 }
 
 async function getLocalStream() {
-  if (localStream) {
+  if (hasUsableLocalStream(localStream)) {
     return localStream;
+  }
+
+  if (localStream) {
+    localStream.getTracks().forEach((track) => {
+      track.stop();
+    });
   }
 
   try {
@@ -145,6 +174,7 @@ async function getLocalStream() {
       video: true,
       audio: true,
     });
+    applyLocalTrackPreferences(localStream);
     attachStreamToVideo(localVideo, localStream, { muted: true });
     setStatus();
     return localStream;
@@ -183,6 +213,24 @@ function syncCallActionButtons() {
   const showDisconnectButton = remoteMediaActive || dataConnectionOpen;
   setControlVisibility(endCallBtn, showDisconnectButton);
   setControlVisibility(fullscreenEndCallBtn, showDisconnectButton);
+}
+
+function setRemoteStream(stream) {
+  if (!(stream instanceof MediaStream)) {
+    return;
+  }
+
+  remoteMediaStream = stream;
+  remoteMediaActive = stream.getTracks().length > 0;
+  attachStreamToVideo(remoteVideo, stream);
+  syncCallActionButtons();
+}
+
+function clearRemoteStream() {
+  remoteMediaStream = null;
+  remoteMediaActive = false;
+  remoteVideo.srcObject = null;
+  syncCallActionButtons();
 }
 
 function toggleAudio() {
@@ -354,12 +402,78 @@ function attachCallHandlers(activeCall) {
   }
 
   currentCall = activeCall;
+  const callPeer = activeCall.peer;
+
+  let fallbackRemoteStream = remoteMediaStream instanceof MediaStream ? remoteMediaStream : new MediaStream();
+  const peerConnection = activeCall.peerConnection;
+
+  const syncTracksFromPeerConnection = () => {
+    if (!peerConnection || typeof peerConnection.getReceivers !== "function") {
+      return;
+    }
+
+    peerConnection.getReceivers().forEach((receiver) => {
+      const track = receiver.track;
+
+      if (!track || fallbackRemoteStream.getTracks().some((existingTrack) => existingTrack.id === track.id)) {
+        return;
+      }
+
+      fallbackRemoteStream.addTrack(track);
+    });
+
+    if (fallbackRemoteStream.getTracks().length > 0) {
+      connectedRoomId = callPeer || connectedRoomId;
+      setRemoteStream(fallbackRemoteStream);
+    }
+  };
+
+  const handlePeerConnectionStateChange = () => {
+    if (!peerConnection) {
+      return;
+    }
+
+    const connectionState = peerConnection.connectionState;
+    const iceConnectionState = peerConnection.iceConnectionState;
+
+    if (connectionState === "failed" || iceConnectionState === "failed") {
+      setStatus("Media connection failed. Please retry the call.", "error");
+    }
+
+    if (connectionState === "connected" || iceConnectionState === "connected") {
+      syncTracksFromPeerConnection();
+    }
+  };
+
+  const handlePeerConnectionTrack = (event) => {
+    if (event.streams && event.streams[0]) {
+      connectedRoomId = callPeer || connectedRoomId;
+      setRemoteStream(event.streams[0]);
+      return;
+    }
+
+    if (!event.track) {
+      return;
+    }
+
+    if (!fallbackRemoteStream.getTracks().some((track) => track.id === event.track.id)) {
+      fallbackRemoteStream.addTrack(event.track);
+    }
+
+    connectedRoomId = callPeer || connectedRoomId;
+    setRemoteStream(fallbackRemoteStream);
+  };
+
+  if (peerConnection) {
+    peerConnection.addEventListener("track", handlePeerConnectionTrack);
+    peerConnection.addEventListener("connectionstatechange", handlePeerConnectionStateChange);
+    peerConnection.addEventListener("iceconnectionstatechange", handlePeerConnectionStateChange);
+    syncTracksFromPeerConnection();
+  }
 
   currentCall.on("stream", (remoteStream) => {
-    remoteMediaActive = true;
-    connectedRoomId = activeCall.peer || connectedRoomId;
-    attachStreamToVideo(remoteVideo, remoteStream);
-    syncCallActionButtons();
+    connectedRoomId = callPeer || connectedRoomId;
+    setRemoteStream(remoteStream);
     setStatus("Connected. You're in the room.", "success");
   });
 
@@ -368,14 +482,17 @@ function attachCallHandlers(activeCall) {
       currentCall = null;
     }
 
-    remoteMediaActive = false;
-    remoteVideo.srcObject = null;
+    if (peerConnection) {
+      peerConnection.removeEventListener("track", handlePeerConnectionTrack);
+      peerConnection.removeEventListener("connectionstatechange", handlePeerConnectionStateChange);
+      peerConnection.removeEventListener("iceconnectionstatechange", handlePeerConnectionStateChange);
+    }
+
+    clearRemoteStream();
 
     if (!dataConnectionOpen) {
       connectedRoomId = "";
     }
-
-    syncCallActionButtons();
   });
 
   currentCall.on("error", (error) => {
@@ -386,14 +503,11 @@ function attachCallHandlers(activeCall) {
 
 function closeCurrentCall() {
   if (!currentCall) {
-    remoteMediaActive = false;
-    remoteVideo.srcObject = null;
+    clearRemoteStream();
 
     if (!dataConnectionOpen) {
       connectedRoomId = "";
     }
-
-    syncCallActionButtons();
     return;
   }
 
@@ -404,18 +518,21 @@ function closeCurrentCall() {
   }
 
   currentCall = null;
-  remoteMediaActive = false;
-  remoteVideo.srcObject = null;
+  clearRemoteStream();
 
   if (!dataConnectionOpen) {
     connectedRoomId = "";
   }
-
-  syncCallActionButtons();
 }
 
 function createPeer() {
-  peer = new Peer();
+  peer = new Peer({
+    debug: 2,
+    config: {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      sdpSemantics: "unified-plan",
+    },
+  });
 
   peer.on("call", async (incomingCall) => {
     try {
@@ -511,13 +628,11 @@ function resetMedia() {
 
   localStream = null;
   localVideo.srcObject = null;
-  remoteVideo.srcObject = null;
-  remoteMediaActive = false;
+  clearRemoteStream();
   audioEnabled = true;
   videoEnabled = true;
   updateAudioButtons();
   updateVideoButtons();
-  syncCallActionButtons();
 }
 
 function buildInviteUrl(roomId) {
