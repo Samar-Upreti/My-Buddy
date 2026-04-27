@@ -8,4 +8,4 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: http://mybuddy.mysamar.in/sitemap.xml
+Sitemap: http://mybuddy.netlify.app/sitemap.xml

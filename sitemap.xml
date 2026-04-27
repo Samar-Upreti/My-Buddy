@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <!-- Home Page -->
    <url>
-      <loc>http://mybuddy.mysamar.in/</loc>
+      <loc>http://mybuddy.netlify.app/</loc>
       <lastmod>2023-09-15</lastmod>
       <priority>1.0</priority>
    </url>
