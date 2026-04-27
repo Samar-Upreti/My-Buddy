@@ -39,6 +39,17 @@ let videoEnabled = true;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
 const sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
+const icons = {
+  hangUp: '<i class="fa-solid fa-phone-slash" aria-hidden="true"></i>',
+  cameraOff: '<i class="fa-solid fa-camera-slash" aria-hidden="true"></i>',
+  cameraOn: '<i class="fa-solid fa-camera" aria-hidden="true"></i>',
+  audioOff: '<i class="fa-solid fa-microphone-slash" aria-hidden="true"></i>',
+  audioOn: '<i class="fa-solid fa-microphone" aria-hidden="true"></i>',
+  chat: "💬",
+  focus: "⛶",
+  backdrop: "🎨",
+  exitFocus: "🗗",
+};
 
 function setStatus(message = "", tone = "neutral") {
   errorDisplay.textContent = message;
@@ -53,10 +64,40 @@ function setStatus(message = "", tone = "neutral") {
   }
 }
 
-function updateButtonIcon(button, icon, label) {
-  button.textContent = icon;
+function updateButtonIcon(button, iconMarkup, label) {
+  button.innerHTML = iconMarkup;
   button.title = label;
   button.setAttribute("aria-label", label);
+}
+
+function attachStreamToVideo(videoElement, stream, { muted = false } = {}) {
+  if (!videoElement || !stream) {
+    return;
+  }
+
+  videoElement.muted = muted;
+  videoElement.autoplay = true;
+  videoElement.playsInline = true;
+  videoElement.srcObject = stream;
+
+  const tryPlay = () => {
+    const playPromise = videoElement.play();
+
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch((error) => {
+        console.warn("Video playback could not start automatically", error);
+      });
+    }
+  };
+
+  if (videoElement.readyState >= 1) {
+    tryPlay();
+    return;
+  }
+
+  videoElement.onloadedmetadata = () => {
+    tryPlay();
+  };
 }
 
 async function getLocalStream() {
@@ -69,7 +110,7 @@ async function getLocalStream() {
       video: true,
       audio: true,
     });
-    localVideo.srcObject = localStream;
+    attachStreamToVideo(localVideo, localStream, { muted: true });
     setStatus();
     return localStream;
   } catch (error) {
@@ -79,14 +120,14 @@ async function getLocalStream() {
 }
 
 function updateAudioButtons() {
-  const icon = audioEnabled ? "🎙️" : "🔇";
+  const icon = audioEnabled ? icons.audioOn : icons.audioOff;
   const label = audioEnabled ? "Mute microphone" : "Unmute microphone";
   updateButtonIcon(muteAudioBtn, icon, label);
   updateButtonIcon(fullscreenMuteAudioBtn, icon, label);
 }
 
 function updateVideoButtons() {
-  const icon = videoEnabled ? "📹" : "🚫";
+  const icon = videoEnabled ? icons.cameraOn : icons.cameraOff;
   const label = videoEnabled ? "Turn camera off" : "Turn camera on";
   updateButtonIcon(muteVideoBtn, icon, label);
   updateButtonIcon(fullscreenMuteVideoBtn, icon, label);
@@ -248,7 +289,7 @@ function attachCallHandlers(activeCall) {
   currentCall = activeCall;
 
   currentCall.on("stream", (remoteStream) => {
-    remoteVideo.srcObject = remoteStream;
+    attachStreamToVideo(remoteVideo, remoteStream);
   });
 
   currentCall.on("close", () => {
@@ -685,12 +726,12 @@ if (imageBtn) {
 
 updateAudioButtons();
 updateVideoButtons();
-updateButtonIcon(messageBtn, "💬", "Open chat");
-updateButtonIcon(fullscreenMessageBtn, "💬", "Open chat");
-updateButtonIcon(zoomBtn, "⛶", "Open focus mode");
-updateButtonIcon(colorBtn, "🎨", "Change background color");
-updateButtonIcon(minimizeBtn, "🗗", "Exit focus mode");
-updateButtonIcon(endCallBtn, "📴", "End call");
-updateButtonIcon(fullscreenEndCallBtn, "📴", "End call");
+updateButtonIcon(messageBtn, icons.chat, "Open chat");
+updateButtonIcon(fullscreenMessageBtn, icons.chat, "Open chat");
+updateButtonIcon(zoomBtn, icons.focus, "Open focus mode");
+updateButtonIcon(colorBtn, icons.backdrop, "Change background color");
+updateButtonIcon(minimizeBtn, icons.exitFocus, "Exit focus mode");
+updateButtonIcon(endCallBtn, icons.hangUp, "End call");
+updateButtonIcon(fullscreenEndCallBtn, icons.hangUp, "End call");
 chatBox.style.display = "none";
 setTimeout(maybeJoinFromSharedLink, 0);

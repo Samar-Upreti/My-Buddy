@@ -386,6 +386,11 @@ video {
   line-height: 1;
 }
 
+.icon-btn i {
+  font-size: 1.15rem;
+  pointer-events: none;
+}
+
 .control-btn.accent {
   background: var(--ink);
   color: #fff7f0;
