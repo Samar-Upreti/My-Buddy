@@ -38,7 +38,10 @@ let audioEnabled = true;
 let videoEnabled = true;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
+let remoteMediaActive = false;
+let dataConnectionOpen = false;
 const sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
+const pendingPlaybackRetryVideos = new WeakSet();
 const icons = {
   hangUp: '<i class="fa-solid fa-phone-slash" aria-hidden="true"></i>',
   cameraOff: '<i class="fa-solid fa-camera-slash" aria-hidden="true"></i>',
@@ -70,6 +73,30 @@ function updateButtonIcon(button, iconMarkup, label) {
   button.setAttribute("aria-label", label);
 }
 
+function schedulePlaybackRetry(videoElement) {
+  if (!videoElement || pendingPlaybackRetryVideos.has(videoElement)) {
+    return;
+  }
+
+  pendingPlaybackRetryVideos.add(videoElement);
+
+  const retryPlayback = () => {
+    pendingPlaybackRetryVideos.delete(videoElement);
+
+    const playPromise = videoElement.play();
+
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch((error) => {
+        console.warn("Video playback retry failed", error);
+        schedulePlaybackRetry(videoElement);
+      });
+    }
+  };
+
+  document.addEventListener("click", retryPlayback, { once: true });
+  document.addEventListener("touchend", retryPlayback, { once: true });
+}
+
 function attachStreamToVideo(videoElement, stream, { muted = false } = {}) {
   if (!videoElement || !stream) {
     return;
@@ -86,6 +113,14 @@ function attachStreamToVideo(videoElement, stream, { muted = false } = {}) {
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch((error) => {
         console.warn("Video playback could not start automatically", error);
+
+        if (!muted && videoElement === remoteVideo) {
+          setStatus(
+            "Connected. If remote audio or video stays paused, tap anywhere once to start playback.",
+            "success",
+          );
+          schedulePlaybackRetry(videoElement);
+        }
       });
     }
   };
@@ -133,6 +168,23 @@ function updateVideoButtons() {
   updateButtonIcon(fullscreenMuteVideoBtn, icon, label);
 }
 
+function setControlVisibility(button, isVisible) {
+  if (!button) {
+    return;
+  }
+
+  button.style.display = isVisible ? "inline-flex" : "none";
+}
+
+function syncCallActionButtons() {
+  setControlVisibility(messageBtn, dataConnectionOpen);
+  setControlVisibility(fullscreenMessageBtn, dataConnectionOpen);
+
+  const showDisconnectButton = remoteMediaActive || dataConnectionOpen;
+  setControlVisibility(endCallBtn, showDisconnectButton);
+  setControlVisibility(fullscreenEndCallBtn, showDisconnectButton);
+}
+
 function toggleAudio() {
   if (!localStream) {
     return;
@@ -155,16 +207,6 @@ function toggleVideo() {
     track.enabled = videoEnabled;
   });
   updateVideoButtons();
-}
-
-function showMessageButtons() {
-  messageBtn.style.display = "inline-flex";
-  fullscreenMessageBtn.style.display = "inline-flex";
-}
-
-function hideMessageButtons() {
-  messageBtn.style.display = "none";
-  fullscreenMessageBtn.style.display = "none";
 }
 
 function clearInviteQuery() {
@@ -194,8 +236,16 @@ function appendMessage(message, isLocal = true) {
 function bindDataConnection(connection) {
   dataConnection = connection;
 
+  if (connection.open) {
+    dataConnectionOpen = true;
+    connectedRoomId = connection.peer || connectedRoomId;
+    syncCallActionButtons();
+  }
+
   dataConnection.on("open", () => {
-    showMessageButtons();
+    dataConnectionOpen = true;
+    connectedRoomId = connection.peer || connectedRoomId;
+    syncCallActionButtons();
   });
 
   dataConnection.on("data", (message) => {
@@ -206,6 +256,14 @@ function bindDataConnection(connection) {
     if (dataConnection === connection) {
       dataConnection = null;
     }
+
+    dataConnectionOpen = false;
+
+    if (!remoteMediaActive) {
+      connectedRoomId = "";
+    }
+
+    syncCallActionButtons();
   });
 }
 
@@ -269,6 +327,8 @@ function waitForDataConnection(connection, timeoutMs = 10000) {
 
 function closeDataConnection() {
   if (!dataConnection) {
+    dataConnectionOpen = false;
+    syncCallActionButtons();
     return;
   }
 
@@ -279,6 +339,13 @@ function closeDataConnection() {
   }
 
   dataConnection = null;
+  dataConnectionOpen = false;
+
+  if (!remoteMediaActive) {
+    connectedRoomId = "";
+  }
+
+  syncCallActionButtons();
 }
 
 function attachCallHandlers(activeCall) {
@@ -289,22 +356,44 @@ function attachCallHandlers(activeCall) {
   currentCall = activeCall;
 
   currentCall.on("stream", (remoteStream) => {
+    remoteMediaActive = true;
+    connectedRoomId = activeCall.peer || connectedRoomId;
     attachStreamToVideo(remoteVideo, remoteStream);
+    syncCallActionButtons();
+    setStatus("Connected. You're in the room.", "success");
   });
 
   currentCall.on("close", () => {
     if (currentCall === activeCall) {
       currentCall = null;
-      remoteVideo.srcObject = null;
+    }
+
+    remoteMediaActive = false;
+    remoteVideo.srcObject = null;
+
+    if (!dataConnectionOpen) {
       connectedRoomId = "";
     }
+
+    syncCallActionButtons();
+  });
+
+  currentCall.on("error", (error) => {
+    console.warn("Media connection failed", error);
+    setStatus(`Call error: ${error.message}`, "error");
   });
 }
 
 function closeCurrentCall() {
   if (!currentCall) {
+    remoteMediaActive = false;
     remoteVideo.srcObject = null;
-    connectedRoomId = "";
+
+    if (!dataConnectionOpen) {
+      connectedRoomId = "";
+    }
+
+    syncCallActionButtons();
     return;
   }
 
@@ -315,17 +404,35 @@ function closeCurrentCall() {
   }
 
   currentCall = null;
+  remoteMediaActive = false;
   remoteVideo.srcObject = null;
-  connectedRoomId = "";
+
+  if (!dataConnectionOpen) {
+    connectedRoomId = "";
+  }
+
+  syncCallActionButtons();
 }
 
 function createPeer() {
   peer = new Peer();
 
-  peer.on("call", (incomingCall) => {
-    incomingCall.answer(localStream);
-    attachCallHandlers(incomingCall);
-    showMessageButtons();
+  peer.on("call", async (incomingCall) => {
+    try {
+      const stream = await getLocalStream();
+      attachCallHandlers(incomingCall);
+      incomingCall.answer(stream);
+      connectedRoomId = incomingCall.peer || connectedRoomId;
+      setStatus("Participant joined. Connecting media...", "success");
+    } catch (error) {
+      setStatus(`Could not answer incoming call: ${error.message}`, "error");
+
+      try {
+        incomingCall.close();
+      } catch (closeError) {
+        console.warn("Failed to close incoming call", closeError);
+      }
+    }
   });
 
   peer.on("connection", (connection) => {
@@ -340,10 +447,14 @@ function createPeer() {
     joinRoomBtn.disabled = false;
     createRoomBtn.textContent = currentRoomId ? "Room Ready" : "Create Room";
     joinRoomBtn.textContent = "Join Room";
+    syncCallActionButtons();
   });
 
   peer.on("disconnected", () => {
     connectedRoomId = "";
+    dataConnectionOpen = false;
+    remoteMediaActive = false;
+    syncCallActionButtons();
   });
 
   return peer;
@@ -401,10 +512,12 @@ function resetMedia() {
   localStream = null;
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
+  remoteMediaActive = false;
   audioEnabled = true;
   videoEnabled = true;
   updateAudioButtons();
   updateVideoButtons();
+  syncCallActionButtons();
 }
 
 function buildInviteUrl(roomId) {
@@ -542,14 +655,15 @@ async function exitFocusMode() {
 function resetRoomUi() {
   currentRoomId = "";
   connectedRoomId = "";
+  dataConnectionOpen = false;
   roomCodeDisplay.innerHTML = "";
   roomCodeInput.value = "";
   createRoomBtn.disabled = false;
   createRoomBtn.textContent = "Create Room";
   joinRoomBtn.disabled = false;
   joinRoomBtn.textContent = "Join Room";
-  hideMessageButtons();
   chatBox.style.display = "none";
+  syncCallActionButtons();
 }
 
 function endCallSession() {
@@ -583,7 +697,6 @@ async function createRoom() {
     currentRoomId = peer.id;
     roomCodeInput.value = currentRoomId;
     renderRoomInvite(currentRoomId);
-    showMessageButtons();
     createRoomBtn.textContent = "Room Ready";
     setStatus("Room ready. Share the invite link below.", "success");
   } catch (error) {
@@ -629,8 +742,7 @@ async function joinRoom(roomValue = roomCodeInput.value) {
     await waitForDataConnection(connection);
 
     connectedRoomId = roomId;
-    showMessageButtons();
-    setStatus("Connected. You're in the room.", "success");
+    setStatus("Connected to the room. Finalizing media...", "success");
   } catch (error) {
     closeDataConnection();
     closeCurrentCall();
@@ -649,8 +761,7 @@ function maybeJoinFromSharedLink() {
   }
 
   roomCodeInput.value = sharedRoomId;
-  setStatus("Shared room detected. Joining automatically...", "success");
-  joinRoom(sharedRoomId);
+  setStatus("Invite link detected. Tap Join Room to start the call.", "success");
 }
 
 createRoomBtn.addEventListener("click", createRoom);
@@ -734,4 +845,5 @@ updateButtonIcon(minimizeBtn, icons.exitFocus, "Exit focus mode");
 updateButtonIcon(endCallBtn, icons.hangUp, "End call");
 updateButtonIcon(fullscreenEndCallBtn, icons.hangUp, "End call");
 chatBox.style.display = "none";
+syncCallActionButtons();
 setTimeout(maybeJoinFromSharedLink, 0);
