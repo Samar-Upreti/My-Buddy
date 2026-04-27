@@ -119,10 +119,11 @@
                 </div>
 
                 <div id="controls" class="control-dock">
-                    <button id="muteVideoBtn" class="control-btn" type="button">Camera On</button>
-                    <button id="muteAudioBtn" class="control-btn" type="button">Mic On</button>
-                    <button id="messageBtn" class="control-btn" type="button" style="display:none">Chat</button>
-                    <button id="zoomBtn" class="control-btn accent" type="button">Focus View</button>
+                    <button id="muteVideoBtn" class="control-btn icon-btn" type="button" aria-label="Turn camera off">📹</button>
+                    <button id="muteAudioBtn" class="control-btn icon-btn" type="button" aria-label="Mute microphone">🎙️</button>
+                    <button id="messageBtn" class="control-btn icon-btn" type="button" aria-label="Open chat" style="display:none">💬</button>
+                    <button id="zoomBtn" class="control-btn icon-btn accent" type="button" aria-label="Open focus mode">⛶</button>
+                    <button id="endCallBtn" class="control-btn icon-btn danger" type="button" aria-label="End call">📴</button>
                 </div>
             </section>
         </main>
@@ -134,11 +135,12 @@
         </button>
 
         <div id="fullscreenControls" class="fullscreen-controls">
-            <button id="fullscreenMuteVideoBtn" class="control-btn" type="button">Camera On</button>
-            <button id="fullscreenMuteAudioBtn" class="control-btn" type="button">Mic On</button>
-            <button id="colorBtn" class="control-btn" title="Change background color" type="button">Backdrop</button>
-            <button id="fullscreenMessageBtn" class="control-btn" type="button" style="display:none">Chat</button>
-            <button id="fullscreenMinimizeBtn" class="control-btn accent" type="button">Exit Focus</button>
+            <button id="fullscreenMuteVideoBtn" class="control-btn icon-btn" type="button" aria-label="Turn camera off">📹</button>
+            <button id="fullscreenMuteAudioBtn" class="control-btn icon-btn" type="button" aria-label="Mute microphone">🎙️</button>
+            <button id="colorBtn" class="control-btn icon-btn" title="Change background color" type="button" aria-label="Change background color">🎨</button>
+            <button id="fullscreenMessageBtn" class="control-btn icon-btn" type="button" aria-label="Open chat" style="display:none">💬</button>
+            <button id="fullscreenEndCallBtn" class="control-btn icon-btn danger" type="button" aria-label="End call">📴</button>
+            <button id="fullscreenMinimizeBtn" class="control-btn icon-btn accent" type="button" aria-label="Exit focus mode">🗗</button>
         </div>
 
         <div id="chatBox" class="chat-box">

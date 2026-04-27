@@ -19,6 +19,8 @@ const colorBtn = document.getElementById("colorBtn");
 const colorPicker = document.getElementById("colorPicker");
 const messageBtn = document.getElementById("messageBtn");
 const fullscreenMessageBtn = document.getElementById("fullscreenMessageBtn");
+const endCallBtn = document.getElementById("endCallBtn");
+const fullscreenEndCallBtn = document.getElementById("fullscreenEndCallBtn");
 const chatBox = document.getElementById("chatBox");
 const chatMessages = document.getElementById("chatMessages");
 const chatInput = document.getElementById("chatInput");
@@ -36,6 +38,7 @@ let audioEnabled = true;
 let videoEnabled = true;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
+const sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
 
 function setStatus(message = "", tone = "neutral") {
   errorDisplay.textContent = message;
@@ -48,6 +51,12 @@ function setStatus(message = "", tone = "neutral") {
   if (tone === "success") {
     errorDisplay.classList.add("is-success");
   }
+}
+
+function updateButtonIcon(button, icon, label) {
+  button.textContent = icon;
+  button.title = label;
+  button.setAttribute("aria-label", label);
 }
 
 async function getLocalStream() {
@@ -70,15 +79,17 @@ async function getLocalStream() {
 }
 
 function updateAudioButtons() {
-  const label = audioEnabled ? "Mic On" : "Mic Off";
-  muteAudioBtn.textContent = label;
-  fullscreenMuteAudioBtn.textContent = label;
+  const icon = audioEnabled ? "🎙️" : "🔇";
+  const label = audioEnabled ? "Mute microphone" : "Unmute microphone";
+  updateButtonIcon(muteAudioBtn, icon, label);
+  updateButtonIcon(fullscreenMuteAudioBtn, icon, label);
 }
 
 function updateVideoButtons() {
-  const label = videoEnabled ? "Camera On" : "Camera Off";
-  muteVideoBtn.textContent = label;
-  fullscreenMuteVideoBtn.textContent = label;
+  const icon = videoEnabled ? "📹" : "🚫";
+  const label = videoEnabled ? "Turn camera off" : "Turn camera on";
+  updateButtonIcon(muteVideoBtn, icon, label);
+  updateButtonIcon(fullscreenMuteVideoBtn, icon, label);
 }
 
 function toggleAudio() {
@@ -106,8 +117,24 @@ function toggleVideo() {
 }
 
 function showMessageButtons() {
-  messageBtn.style.display = "block";
-  fullscreenMessageBtn.style.display = "block";
+  messageBtn.style.display = "inline-flex";
+  fullscreenMessageBtn.style.display = "inline-flex";
+}
+
+function hideMessageButtons() {
+  messageBtn.style.display = "none";
+  fullscreenMessageBtn.style.display = "none";
+}
+
+function clearInviteQuery() {
+  const currentUrl = new URL(window.location.href);
+
+  if (!currentUrl.searchParams.has("room")) {
+    return;
+  }
+
+  currentUrl.searchParams.delete("room");
+  window.history.replaceState({}, "", currentUrl.toString());
 }
 
 function toggleChatBox() {
@@ -141,6 +168,20 @@ function bindDataConnection(connection) {
   });
 }
 
+function closeDataConnection() {
+  if (!dataConnection) {
+    return;
+  }
+
+  try {
+    dataConnection.close();
+  } catch (error) {
+    console.warn("Failed to close data connection", error);
+  }
+
+  dataConnection = null;
+}
+
 function attachCallHandlers(activeCall) {
   if (currentCall && currentCall !== activeCall) {
     currentCall.close();
@@ -159,6 +200,24 @@ function attachCallHandlers(activeCall) {
       connectedRoomId = "";
     }
   });
+}
+
+function closeCurrentCall() {
+  if (!currentCall) {
+    remoteVideo.srcObject = null;
+    connectedRoomId = "";
+    return;
+  }
+
+  try {
+    currentCall.close();
+  } catch (error) {
+    console.warn("Failed to close call", error);
+  }
+
+  currentCall = null;
+  remoteVideo.srcObject = null;
+  connectedRoomId = "";
 }
 
 function createPeer() {
@@ -191,6 +250,20 @@ function createPeer() {
   return peer;
 }
 
+function destroyPeer() {
+  if (!peer) {
+    return;
+  }
+
+  try {
+    peer.destroy();
+  } catch (error) {
+    console.warn("Failed to destroy peer", error);
+  }
+
+  peer = null;
+}
+
 function ensurePeerReady() {
   if (peer && peer.open) {
     return Promise.resolve(peer);
@@ -217,6 +290,22 @@ function ensurePeerReady() {
     peer.on("open", handleOpen);
     peer.on("error", handleError);
   });
+}
+
+function resetMedia() {
+  if (localStream) {
+    localStream.getTracks().forEach((track) => {
+      track.stop();
+    });
+  }
+
+  localStream = null;
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+  audioEnabled = true;
+  videoEnabled = true;
+  updateAudioButtons();
+  updateVideoButtons();
 }
 
 function buildInviteUrl(roomId) {
@@ -311,6 +400,70 @@ function renderRoomInvite(roomId) {
   roomCodeDisplay.appendChild(actions);
 }
 
+function syncFocusUi(isActive) {
+  if (isActive) {
+    videoContainer.classList.add("zoomed");
+    controls.style.display = "none";
+    menuBtn.style.display = "inline-flex";
+    fullscreenControls.classList.remove("show");
+    return;
+  }
+
+  videoContainer.classList.remove("zoomed");
+  controls.style.display = "flex";
+  menuBtn.style.display = "none";
+  fullscreenControls.classList.remove("show");
+  videoContainer.style.backgroundColor = "";
+}
+
+async function enterFocusMode() {
+  syncFocusUi(true);
+
+  if (videoContainer.requestFullscreen && document.fullscreenElement !== videoContainer) {
+    try {
+      await videoContainer.requestFullscreen();
+    } catch (error) {
+      console.warn("Fullscreen request failed", error);
+    }
+  }
+}
+
+async function exitFocusMode() {
+  syncFocusUi(false);
+
+  if (document.fullscreenElement && document.exitFullscreen) {
+    try {
+      await document.exitFullscreen();
+    } catch (error) {
+      console.warn("Exiting fullscreen failed", error);
+    }
+  }
+}
+
+function resetRoomUi() {
+  currentRoomId = "";
+  connectedRoomId = "";
+  roomCodeDisplay.innerHTML = "";
+  roomCodeInput.value = "";
+  createRoomBtn.disabled = false;
+  createRoomBtn.textContent = "Create Room";
+  joinRoomBtn.disabled = false;
+  joinRoomBtn.textContent = "Join Room";
+  hideMessageButtons();
+  chatBox.style.display = "none";
+}
+
+function endCallSession() {
+  closeDataConnection();
+  closeCurrentCall();
+  destroyPeer();
+  resetMedia();
+  resetRoomUi();
+  clearInviteQuery();
+  exitFocusMode();
+  setStatus("Call ended. You can create or join a new room.", "success");
+}
+
 async function createRoom() {
   if (isCreatingRoom) {
     return;
@@ -367,6 +520,7 @@ async function joinRoom(roomValue = roomCodeInput.value) {
     await ensurePeerReady();
 
     roomCodeInput.value = roomId;
+    setStatus(`Joining room ${roomId}...`, "success");
 
     attachCallHandlers(peer.call(roomId, localStream));
 
@@ -387,14 +541,13 @@ async function joinRoom(roomValue = roomCodeInput.value) {
 }
 
 function maybeJoinFromSharedLink() {
-  const roomId = new URLSearchParams(window.location.search).get("room");
-
-  if (!roomId) {
+  if (!sharedRoomId) {
     return;
   }
 
-  roomCodeInput.value = roomId;
-  joinRoom(roomId);
+  roomCodeInput.value = sharedRoomId;
+  setStatus("Shared room detected. Joining automatically...", "success");
+  joinRoom(sharedRoomId);
 }
 
 createRoomBtn.addEventListener("click", createRoom);
@@ -405,19 +558,8 @@ muteAudioBtn.addEventListener("click", toggleAudio);
 fullscreenMuteAudioBtn.addEventListener("click", toggleAudio);
 muteVideoBtn.addEventListener("click", toggleVideo);
 fullscreenMuteVideoBtn.addEventListener("click", toggleVideo);
-zoomBtn.addEventListener("click", () => {
-  videoContainer.classList.add("zoomed");
-  controls.style.display = "none";
-  menuBtn.style.display = "block";
-  fullscreenControls.classList.remove("show");
-});
-minimizeBtn.addEventListener("click", () => {
-  videoContainer.classList.remove("zoomed");
-  fullscreenControls.style.display = "none";
-  controls.style.display = "flex";
-  menuBtn.style.display = "none";
-  videoContainer.style.backgroundColor = "";
-});
+zoomBtn.addEventListener("click", enterFocusMode);
+minimizeBtn.addEventListener("click", exitFocusMode);
 menuBtn.addEventListener("click", () => {
   fullscreenControls.classList.toggle("show");
 });
@@ -429,8 +571,15 @@ colorPicker.addEventListener("input", (event) => {
 });
 messageBtn.addEventListener("click", toggleChatBox);
 fullscreenMessageBtn.addEventListener("click", toggleChatBox);
+endCallBtn.addEventListener("click", endCallSession);
+fullscreenEndCallBtn.addEventListener("click", endCallSession);
 closeChatBtn.addEventListener("click", () => {
   chatBox.style.display = "none";
+});
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement !== videoContainer) {
+    syncFocusUi(false);
+  }
 });
 document.addEventListener("click", (event) => {
   if (
@@ -474,5 +623,12 @@ if (imageBtn) {
 
 updateAudioButtons();
 updateVideoButtons();
+updateButtonIcon(messageBtn, "💬", "Open chat");
+updateButtonIcon(fullscreenMessageBtn, "💬", "Open chat");
+updateButtonIcon(zoomBtn, "⛶", "Open focus mode");
+updateButtonIcon(colorBtn, "🎨", "Change background color");
+updateButtonIcon(minimizeBtn, "🗗", "Exit focus mode");
+updateButtonIcon(endCallBtn, "📴", "End call");
+updateButtonIcon(fullscreenEndCallBtn, "📴", "End call");
 chatBox.style.display = "none";
-maybeJoinFromSharedLink();
+setTimeout(maybeJoinFromSharedLink, 0);
