@@ -4,10 +4,14 @@
   "short_name": "My Buddy",
   "description": "The best platform to connect and communicate with your friends in real-time using video chat.",
   "start_url": "/",
-  "display": "standalone", 
-  "theme_color": "#101b31",
-  "background_color": "#101b31",
+  "display": "standalone",
   "orientation": "portrait",
+  "background_color": "#101b31",
+  "theme_color": "#101b31",
+  "categories": ["social", "communications", "entertainment"],
+  "iarc_rating_id": "", 
+  "related_applications": [],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "assets/img/icon-192.png",
@@ -27,7 +31,15 @@
       "src": "assets/img/screenshot-1.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Mobile Video Chat View"
+    },
+    {
+      "src": "assets/img/screenshot-2.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Video Chat View"
     }
   ]
 }

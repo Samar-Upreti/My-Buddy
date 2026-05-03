@@ -35,6 +35,12 @@ body {
     radial-gradient(circle at bottom right, rgba(71, 172, 160, 0.24), transparent 26%),
     linear-gradient(135deg, #f7f1e7 0%, #f0e1ca 45%, #f6efe4 100%);
 }
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
 
 button,
 input,

@@ -158,5 +158,14 @@
 
     <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
     <script src="dist/bundle.js"></script>
+    <script>
+        if ('service-worker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker registered!'))
+                .catch(err => console.log('Service Worker failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>
