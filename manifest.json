@@ -1,0 +1,23 @@
+{
+  "name": "My Buddy",
+  "short_name": "My Buddy",
+  "description": "The best platform to connect and communicate with your friends in real-time using video chat.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101b31",
+  "theme_color": "#101b31",
+  "icons": [
+    {
+      "src": "https://ik.imagekit.io/samar/MyBuddy_Logo.jpg?updatedAt=1777801295551",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://ik.imagekit.io/samar/MyBuddy_Logo.jpg?updatedAt=1777801295551",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
