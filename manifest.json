@@ -4,10 +4,10 @@
   "short_name": "My Buddy",
   "description": "The best platform to connect and communicate with your friends in real-time using video chat.",
   "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#101b31",
+  "display": "standalone", 
   "theme_color": "#101b31",
+  "background_color": "#101b31",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "assets/img/icon-192.png",
