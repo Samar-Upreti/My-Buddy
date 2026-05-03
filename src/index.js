@@ -50,11 +50,24 @@ const icons = {
   cameraOn: '<i class="fa-solid fa-camera" aria-hidden="true"></i>',
   audioOff: '<i class="fa-solid fa-microphone-slash" aria-hidden="true"></i>',
   audioOn: '<i class="fa-solid fa-microphone" aria-hidden="true"></i>',
-  chat: "💬",
-  focus: "⛶",
-  backdrop: "🎨",
-  exitFocus: "🗗",
+  chat: '<i class="fa-solid fa-comments" aria-hidden="true"></i>',
+  focus: '<i class="fa-solid fa-expand" aria-hidden="true"></i>',
+  backdrop: '<i class="fa-solid fa-palette" aria-hidden="true"></i>',
+  exitFocus: '<i class="fa-solid fa-down-left-and-up-right-to-center" aria-hidden="true"></i>',
 };
+
+function isStandaloneContext() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    window.navigator.standalone === true ||
+    document.referrer.startsWith("android-app://")
+  );
+}
+
+function syncDisplayModeClass() {
+  document.body.classList.toggle("app-shell", isStandaloneContext());
+}
 
 function setStatus(message = "", tone = "neutral") {
   errorDisplay.textContent = message;
@@ -1019,6 +1032,23 @@ updateButtonIcon(minimizeBtn, icons.exitFocus, "Exit focus mode");
 updateButtonIcon(endCallBtn, icons.hangUp, "End call");
 updateButtonIcon(fullscreenEndCallBtn, icons.hangUp, "End call");
 chatBox.style.display = "none";
+syncDisplayModeClass();
 syncRoomEntryUi();
 syncCallActionButtons();
 setTimeout(maybeJoinFromSharedLink, 0);
+
+const standaloneMediaQueries = [
+  window.matchMedia("(display-mode: standalone)"),
+  window.matchMedia("(display-mode: fullscreen)"),
+];
+
+standaloneMediaQueries.forEach((mediaQuery) => {
+  if (typeof mediaQuery.addEventListener === "function") {
+    mediaQuery.addEventListener("change", syncDisplayModeClass);
+    return;
+  }
+
+  if (typeof mediaQuery.addListener === "function") {
+    mediaQuery.addListener(syncDisplayModeClass);
+  }
+});

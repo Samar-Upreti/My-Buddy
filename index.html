@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>My Buddy</title>
     <link rel="stylesheet" href="main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -18,16 +18,19 @@
     <meta property="og:description" content="Connect with your friends easily via video chat using My Buddy, a real-time communication platform.">
     <meta property="og:url" content="https://mybuddy.netlify.app/">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://mybuddy.netlify.app/logo.png">
+    <meta property="og:image" content="https://mybuddy.netlify.app/assets/img/logo.png">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="My Buddy - Real-Time Video Chat with Friends">
     <meta name="twitter:description" content="Connect with your friends easily via video chat using My Buddy.">
-    <meta name="twitter:image" content="https://mybuddy.netlify.app/logo.png">
+    <meta name="twitter:image" content="https://mybuddy.netlify.app/assets/img/logo.png">
 
-    <link rel="icon" type="image/png" href="https://ik.imagekit.io/samar/MyBuddy_Logo.jpg?updatedAt=1777801295551" sizes="32x32">
-    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="/assets/img/icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/assets/img/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#101b31">
+    <meta name="application-name" content="My Buddy">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -161,7 +164,7 @@
     <script>
         if ('service-worker' in navigator) {
             window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
                 .then(reg => console.log('Service Worker registered!'))
                 .catch(err => console.log('Service Worker failed:', err));
             });

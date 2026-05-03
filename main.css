@@ -27,6 +27,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  background: #f7f1e7;
+}
+
 body {
   font-family: "Space Grotesk", sans-serif;
   color: var(--ink);
@@ -34,6 +38,12 @@ body {
     radial-gradient(circle at top left, rgba(240, 200, 144, 0.75), transparent 28%),
     radial-gradient(circle at bottom right, rgba(71, 172, 160, 0.24), transparent 26%),
     linear-gradient(135deg, #f7f1e7 0%, #f0e1ca 45%, #f6efe4 100%);
+  min-height: 100dvh;
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
 body {
   -webkit-user-select: none;
@@ -66,6 +76,27 @@ a {
   width: min(1280px, calc(100% - 32px));
   margin: 0 auto;
   padding: 28px 0 40px;
+}
+
+body.app-shell .hero {
+  grid-template-columns: 1fr;
+  margin-bottom: 20px;
+}
+
+body.app-shell .hero-card {
+  display: none;
+}
+
+body.app-shell .hero-copy {
+  padding: 22px 24px;
+}
+
+body.app-shell .hero-points {
+  margin-top: 18px;
+}
+
+body.app-shell #title {
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
 }
 
 .hero {
@@ -412,8 +443,8 @@ video {
 
 #menuBtn {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(18px + env(safe-area-inset-right));
   z-index: 1001;
   display: none;
   width: 58px;
@@ -437,7 +468,7 @@ video {
   display: none;
   position: fixed;
   left: 50%;
-  bottom: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 1000;
   gap: 10px;
@@ -454,8 +485,8 @@ video {
 
 .chat-box {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
   z-index: 1002;
   width: min(360px, calc(100vw - 24px));
   display: none;
@@ -589,6 +620,14 @@ video {
   .page-shell {
     width: min(100%, calc(100% - 18px));
     padding: 16px 0 24px;
+  }
+
+  body.app-shell .hero-copy {
+    padding: 16px;
+  }
+
+  body.app-shell .hero-points {
+    display: none;
   }
 
   .hero-copy,
