@@ -5,9 +5,9 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.example.mybuddy",
+      "package_name": "app.netlify.mybuddy2.twa",
       "sha256_cert_fingerprints": [
-        "12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF"
+        "37:89:C1:C6:DD:F2:7D:CB:4F:6D:8F:0C:17:D0:26:57:78:BE:21:E2:D2:AC:B7:73:33:88:98:77:97:7A:36:EA"
       ]
     }
   }
