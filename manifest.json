@@ -6,15 +6,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#101b31",
   "theme_color": "#101b31",
   "lang": "en-US",
-  "categories": ["social", "communications", "entertainment"],
-  "iarc_rating_id": "",
-  "related_applications": [],
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/assets/img/icon-192.png",
@@ -27,15 +22,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "assets/img/screenshot-1.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Mobile Video Chat View"
     }
   ]
 }
