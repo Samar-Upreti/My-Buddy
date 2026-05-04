@@ -1,2 +1,9 @@
+# Force non-www
+https://www.mybuddy2.netlify.app https://mybuddy2.netlify.app 301!
+https://www.mybuddy2.netlify.app/* https://mybuddy2.netlify.app/:splat 301!
+
+# SPA fallback
 /* /index.html 200
-Sitemap: https://mybuddy.netlify.app/sitemap.xml
+
+# sitemap
+Sitemap: https://mybuddy2.netlify.app/sitemap.xml

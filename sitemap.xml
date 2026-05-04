@@ -1,9 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-   <!-- Home Page -->
+
+   <!-- Home -->
    <url>
-      <loc>http://mybuddy.netlify.app/</loc>
-      <lastmod>2023-09-15</lastmod>
+      <loc>https://mybuddy2.netlify.app/</loc>
+      <lastmod>2026-05-04</lastmod>
+      <changefreq>daily</changefreq>
       <priority>1.0</priority>
    </url>
+
+   <!-- Create Room -->
+   <url>
+      <loc>https://mybuddy2.netlify.app/#create</loc>
+      <lastmod>2026-05-04</lastmod>
+      <changefreq>weekly</changefreq>
+      <priority>0.9</priority>
+   </url>
+
+   <!-- Join Room -->
+   <url>
+      <loc>https://mybuddy2.netlify.app/#join</loc>
+      <lastmod>2026-05-04</lastmod>
+      <changefreq>weekly</changefreq>
+      <priority>0.9</priority>
+   </url>
+
+   <!-- About / Info -->
+   <url>
+      <loc>https://mybuddy2.netlify.app/#about</loc>
+      <lastmod>2026-05-04</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.7</priority>
+   </url>
+
 </urlset>
