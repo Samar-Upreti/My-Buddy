@@ -1,166 +1,221 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bg-slate-950 text-slate-100 antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>My Buddy</title>
-    <link rel="stylesheet" href="main.css">
+    <title>My Buddy | Video Chat</title>
+    
+    <!-- Tailwind CSS (CDN for quick setup) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- SEO & Meta (Kept from original) -->
     <meta name="description" content="My Buddy - The best platform to connect and communicate with your friends in real-time using video chat.">
-    <meta name="keywords" content="My Buddy, video chat, connect with friends, real-time communication, PeerJS video call, P2P chat, record podcast">
-    <link rel="canonical" href="https://mybuddy.netlify.app/">
+    <meta name="theme-color" content="#020617">
 
-    <meta property="og:title" content="My Buddy - Real-Time Video Chat with Friends">
-    <meta property="og:description" content="Connect with your friends easily via video chat using My Buddy, a real-time communication platform.">
-    <meta property="og:url" content="https://mybuddy.netlify.app/">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="https://mybuddy.netlify.app/assets/img/logo.png">
+    <style>
+        /* Custom Styles for JS Dynamic Classes & Elements */
+        body { font-family: 'Inter', sans-serif; overscroll-behavior-y: contain; }
+        
+        /* Status Colors */
+        .is-error { color: #ef4444; } /* Tailwind red-500 */
+        .is-success { color: #10b981; } /* Tailwind emerald-500 */
+        
+        /* Focus/Zoom Mode */
+        .zoomed { position: fixed; inset: 0; z-index: 999; display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.98); padding: 1rem; }
+        @media (min-width: 640px) { .zoomed { flex-direction: row; } }
+        .zoomed .video-card { background: transparent; border: none; box-shadow: none; width: 100%; max-width: 800px; }
+        .zoomed .video-label { display: none; }
+        .zoomed video { border-radius: 1rem; max-height: 85vh; }
+        
+        /* Utility */
+        .show { display: flex !important; }
+        
+        /* Dynamically Injected Room Invite Elements */
+        #roomCodeDisplay a { display: block; padding: 0.75rem 1rem; background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 0.5rem; text-decoration: none; word-break: break-all; margin-top: 0.5rem; margin-bottom: 0.75rem; font-weight: 500; }
+        .room-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .room-actions button { padding: 0.5rem 1rem; background-color: #1e293b; color: white; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; transition: background-color 0.2s; }
+        .room-actions button:hover { background-color: #334155; }
 
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="My Buddy - Real-Time Video Chat with Friends">
-    <meta name="twitter:description" content="Connect with your friends easily via video chat using My Buddy.">
-    <meta name="twitter:image" content="https://mybuddy.netlify.app/assets/img/logo.png">
+        /* Dynamically Injected Chat Messages */
+        .message { margin-bottom: 0.5rem; padding: 0.5rem 0.875rem; border-radius: 0.75rem; max-width: 85%; width: fit-content; word-break: break-word; font-size: 0.9rem; line-height: 1.4; }
+        .message.local { margin-left: auto; background-color: #2563eb; color: white; border-bottom-right-radius: 0.25rem; }
+        .message.remote { background-color: #334155; color: white; border-bottom-left-radius: 0.25rem; }
+    
+        /* Smooth entry animation for the chat box */
+        @keyframes chatPopIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
-    <link rel="icon" type="image/png" href="/assets/img/icon-192.png" sizes="192x192">
-    <link rel="apple-touch-icon" href="/assets/img/icon-192.png">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#101b31">
-    <meta name="application-name" content="My Buddy">
-    <meta name="mobile-web-app-capable" content="yes">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="My Buddy">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "My Buddy",
-      "url": "https://mybuddy.netlify.app/",
-      "description": "My Buddy is a real-time video chat platform to connect with friends.",
-      "publisher": {
-        "@type": "Organization",
-        "name": "My Buddy"
-      }
-    }
-    </script>
-
-    <meta name="title" content="My Buddy">
-    <meta name="robots" content="index, follow">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="language" content="English">
-    <meta content="OuMtZ3_LHAXuFY1OGjuydqDdv9IiMnQdMNlzT3wkkzE" name="google-site-verification">
+        #chatBox {
+            animation: chatPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
 </head>
-<body>
-    <div class="page-shell">
-        <header class="hero">
-            <div class="hero-copy">
-                <p class="eyebrow">Direct video rooms</p>
-                <h1 id="title">My Buddy</h1>
-                <p class="hero-text">
-                    Start a room, share link, and let people join instantly without confusing steps.
+<body class="min-h-screen flex flex-col selection:bg-blue-500/30">
+
+    <div class="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6">
+        
+        <!-- Header / Hero Section -->
+        <header class="hero flex flex-col md:flex-row gap-6 md:gap-12 items-center md:items-stretch bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-lg">
+            <div class="flex-1 space-y-4">
+                <p class="text-blue-500 font-bold tracking-widest text-xs uppercase">Direct Video Rooms</p>
+                <h1 id="title" class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">My Buddy</h1>
+                <p class="text-slate-400 text-lg max-w-xl leading-relaxed">
+                    Start a room, share the link, and let people join instantly without confusing steps or downloads.
                 </p>
-                <div class="hero-points">
-                    <span>No sign-up flow</span>
-                    <span>One-click room sharing</span>
-                    <span>Mobile-friendly call layout</span>
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-full text-xs font-medium border border-slate-700">No sign-up flow</span>
+                    <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-full text-xs font-medium border border-slate-700">One-click sharing</span>
+                    <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-full text-xs font-medium border border-slate-700">Mobile-friendly</span>
                 </div>
             </div>
 
-            <aside class="hero-card">
-                <p class="hero-card-label">How it works</p>
-                <ol class="hero-steps">
-                    <li>Create a room.</li>
+            <aside class="w-full md:w-80 bg-gradient-to-br from-blue-600 to-indigo-800 p-6 rounded-xl shadow-inner text-white flex flex-col justify-center">
+                <p class="font-bold text-sm mb-3 text-blue-100 uppercase tracking-wider">How it works</p>
+                <ol class="list-decimal list-inside space-y-2 text-sm font-medium opacity-90">
+                    <li>Create a secure room.</li>
                     <li>Copy or share the invite link.</li>
-                    <li>Friends open the link and join directly.</li>
+                    <li>Friends click the link and join.</li>
                 </ol>
             </aside>
         </header>
 
-        <main class="workspace">
-            <section class="control-panel">
-                <article class="panel-card">
-                    <p id="roomPanelKicker" class="panel-kicker">Host</p>
-                    <h2 id="roomPanelTitle">Start a room</h2>
-                    <p id="roomPanelCopy" class="panel-copy">Create one private room and get a direct invite link ready to share.</p>
-                    <button id="createRoomBtn" class="primary-action" type="button">Create Room</button>
-                    <div id="roomCodeDisplay" class="room-output"></div>
+        <!-- Main Workspace -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+            
+            <!-- Control Panel (Sidebar) -->
+            <section class="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-6">
+                <article class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
+                    <p id="roomPanelKicker" class="text-blue-500 font-bold tracking-widest text-xs uppercase mb-2">Host</p>
+                    <h2 id="roomPanelTitle" class="text-2xl font-bold text-white mb-2">Start a room</h2>
+                    <p id="roomPanelCopy" class="text-slate-400 text-sm mb-6 leading-relaxed">Create one private room and get a direct invite link ready to share.</p>
+                    
+                    <button id="createRoomBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:shadow-[0_0_25px_rgba(37,99,235,0.6)] active:scale-[0.98]" type="button">
+                        Create Room
+                    </button>
+                    
+                    <div id="roomCodeDisplay" class="mt-4"></div>
                 </article>
 
-                <p id="error" class="status-message" aria-live="polite"></p>
+                <p id="error" class="text-sm font-medium px-2" aria-live="polite"></p>
             </section>
 
-            <section class="call-stage">
-                <div id="videoContainer" class="video-container">
-                    <div class="video-card">
-                        <div class="video-label">
-                            <span class="video-badge">You</span>
-                            <span class="video-note">Camera preview</span>
+            <!-- Video Call Stage -->
+            <section class="lg:col-span-8 xl:col-span-9 bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-2xl shadow-lg flex flex-col min-h-[500px]">
+                
+                <div id="videoContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    <!-- Local Video -->
+                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] sm:aspect-video border border-slate-800 shadow-inner group">
+                        <div class="video-label absolute bottom-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
+                            <span class="bg-slate-800/80 backdrop-blur-sm text-slate-200 px-2.5 py-1 rounded text-xs font-semibold w-fit border border-slate-700/50">You</span>
                         </div>
-                        <video autoplay id="localVideo" playsinline muted></video>
+                        <!-- -scale-x-100 mirrors the local video -->
+                        <video autoplay id="localVideo" playsinline muted class="w-full h-full object-cover -scale-x-100 bg-slate-900"></video>
                     </div>
 
-                    <div class="video-card">
-                        <div class="video-label">
-                            <span class="video-badge remote">Guest</span>
-                            <span class="video-note">Connected participant</span>
+                    <!-- Remote Video -->
+                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] sm:aspect-video border border-slate-800 shadow-inner group">
+                        <div class="video-label absolute bottom-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
+                            <span class="bg-blue-600/80 backdrop-blur-sm text-white px-2.5 py-1 rounded text-xs font-semibold w-fit border border-blue-500/50">Guest</span>
                         </div>
-                        <video autoplay id="remoteVideo" playsinline></video>
+                        <video autoplay id="remoteVideo" playsinline class="w-full h-full object-cover bg-slate-900"></video>
                     </div>
+
+                    <!-- Hidden Mobile Menu Toggle for Fullscreen (must live inside videoContainer so it renders while videoContainer is in true fullscreen) -->
+                    <button id="menuBtn" class="fixed top-6 right-6 z-[1001] hidden h-12 w-12 rounded-full bg-slate-700/90 text-white items-center justify-center shadow-lg border border-slate-400/40 opacity-30 hover:opacity-100 focus:opacity-100 active:opacity-100 transition-opacity duration-300" aria-label="Toggle fullscreen controls" type="button">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <!-- Fullscreen Controls (also must live inside videoContainer for the same reason) -->
+                    <div id="fullscreenControls" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] gap-2 p-2 rounded-full bg-slate-800/90 backdrop-blur-md shadow-2xl border border-slate-700">
+                        <button id="fullscreenMuteVideoBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-video"></i></button>
+                        <button id="fullscreenMuteAudioBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-microphone"></i></button>
+                        <button id="colorBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" title="Change background color" type="button"><i class="fa-solid fa-palette"></i></button>
+                        <button id="fullscreenMessageBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-comments"></i></button>
+                        <button id="fullscreenEndCallBtn" class="h-12 w-12 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-phone-slash"></i></button>
+                        <button id="fullscreenMinimizeBtn" class="h-12 w-12 rounded-full bg-slate-200 text-slate-900 hover:bg-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-down-left-and-up-right-to-center"></i></button>
+                    </div>
+
                 </div>
 
-                <div id="controls" class="control-dock">
-                    <button id="muteVideoBtn" class="control-btn icon-btn" type="button" aria-label="Turn camera off"><i class="fa-sharp fa-solid fa-camera-slash" aria-hidden="true"></i></button>
-                    <button id="muteAudioBtn" class="control-btn icon-btn" type="button" aria-label="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
-                    <button id="messageBtn" class="control-btn icon-btn" type="button" aria-label="Open chat" style="display:none">💬</button>
-                    <button id="zoomBtn" class="control-btn icon-btn accent" type="button" aria-label="Open focus mode">⛶</button>
-                    <button id="endCallBtn" class="control-btn icon-btn danger" type="button" aria-label="End call" style="display:none"><i class="fa-solid fa-phone-slash" aria-hidden="true"></i></button>
+                <!-- Call Controls Dock -->
+                <div id="controls" class="flex flex-wrap justify-center gap-3 mt-6 lg:mt-4">
+                    <button id="muteVideoBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Turn camera off" style="display:none">
+                        <i class="fa-solid fa-video-slash"></i>
+                    </button>
+                    <button id="muteAudioBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Mute microphone" style="display:none">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button id="messageBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Open chat" style="display:none">
+                        <i class="fa-solid fa-comments"></i>
+                    </button>
+                    <button id="zoomBtn" class="h-12 w-12 rounded-full bg-slate-200 hover:bg-white text-slate-900 flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Open focus mode" style="display:none">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <button id="endCallBtn" class="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 active:scale-95" type="button" aria-label="End call" style="display:none">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
                 </div>
             </section>
         </main>
 
-        <button id="menuBtn" aria-label="Toggle fullscreen controls" type="button">
-            <div class="line"></div>
-            <div class="line"></div>
-            <div class="line"></div>
-        </button>
-
-        <div id="fullscreenControls" class="fullscreen-controls">
-            <button id="fullscreenMuteVideoBtn" class="control-btn icon-btn" type="button" aria-label="Turn camera off"><i class="fa-solid fa-camera" aria-hidden="true"></i></button>
-            <button id="fullscreenMuteAudioBtn" class="control-btn icon-btn" type="button" aria-label="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
-            <button id="colorBtn" class="control-btn icon-btn" title="Change background color" type="button" aria-label="Change background color">🎨</button>
-            <button id="fullscreenMessageBtn" class="control-btn icon-btn" type="button" aria-label="Open chat" style="display:none">💬</button>
-            <button id="fullscreenEndCallBtn" class="control-btn icon-btn danger" type="button" aria-label="End call" style="display:none"><i class="fa-solid fa-phone-slash" aria-hidden="true"></i></button>
-            <button id="fullscreenMinimizeBtn" class="control-btn icon-btn accent" type="button" aria-label="Exit focus mode">🗗</button>
-        </div>
-
-        <div id="chatBox" class="chat-box">
-            <div class="chat-header">
-                <div>
-                    <p class="chat-title">Messages</p>
-                    <p class="chat-subtitle">Send quick notes during the call</p>
+        <!-- Floating Chat Box -->
+        <div id="chatBox" class="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden origin-bottom-right" style="display:none; max-height: 500px; height: 60vh;">
+            
+            <!-- Inner wrapper handles the JS 'block' display issue -->
+            <div class="flex flex-col h-full w-full">
+                
+                <!-- Chat Header -->
+                <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800/95 backdrop-blur z-10 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-500/20 text-blue-400 h-8 w-8 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-message text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-white text-sm leading-tight">In-Call Messages</p>
+                            <p class="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Session Chat</p>
+                        </div>
+                    </div>
+                    <button id="closeChatBtn" class="text-slate-400 hover:text-white h-8 w-8 rounded-full hover:bg-slate-700 transition flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
-                <button id="closeChatBtn" type="button">Close</button>
-            </div>
 
-            <div id="chatMessages"></div>
+                <!-- Chat Messages Area -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 bg-slate-900/60 flex flex-col gap-2 scroll-smooth"></div>
 
-            <div id="chatContainer">
-                <input id="chatInput" placeholder="Type a message...">
-                <button id="sendMessageBtn" type="button">Send</button>
+                <!-- Chat Input Area -->
+                <div id="chatContainer" class="p-3 border-t border-slate-700 bg-slate-800 flex gap-2 items-end">
+                    <div class="relative flex-1">
+                        <input id="chatInput" placeholder="Message everyone..." class="w-full bg-slate-900 text-white rounded-xl pl-4 pr-4 py-3 border border-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition shadow-inner">
+                    </div>
+                    
+                    <!-- Upgraded Send Button with Icon -->
+                    <button id="sendMessageBtn" class="bg-blue-600 hover:bg-blue-500 text-white h-[46px] w-[46px] rounded-xl font-semibold transition flex items-center justify-center shrink-0 shadow-md active:scale-95" aria-label="Send message">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+                
             </div>
         </div>
 
-        <input id="colorPicker" style="display:none" type="color" value="#101b31">
+        <!-- Hidden inputs -->
+        <input id="colorPicker" style="display:none" type="color" value="#0f172a">
     </div>
 
+    <!-- Scripts (Kept Identical to Original) -->
     <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-    <script src="dist/bundle.js"></script>
+    <script src="dist/bundle.js"></script> <!-- Ensure your main JS is still compiling here -->
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {

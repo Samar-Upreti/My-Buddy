@@ -46,8 +46,8 @@ let sharedRoomId = new URLSearchParams(window.location.search).get("room") || ""
 const pendingPlaybackRetryVideos = new WeakSet();
 const icons = {
   hangUp: '<i class="fa-solid fa-phone-slash" aria-hidden="true"></i>',
-  cameraOff: '<i class="fa-solid fa-camera-slash" aria-hidden="true"></i>',
-  cameraOn: '<i class="fa-solid fa-camera" aria-hidden="true"></i>',
+  cameraOff: '<i class="fa-solid fa-video-slash" aria-hidden="true"></i>',
+  cameraOn: '<i class="fa-solid fa-video" aria-hidden="true"></i>',
   audioOff: '<i class="fa-solid fa-microphone-slash" aria-hidden="true"></i>',
   audioOn: '<i class="fa-solid fa-microphone" aria-hidden="true"></i>',
   chat: '<i class="fa-solid fa-comments" aria-hidden="true"></i>',
@@ -212,6 +212,20 @@ function updateVideoButtons() {
   updateButtonIcon(fullscreenMuteVideoBtn, icon, label);
 }
 
+let hideFullscreenControlsTimer = null;
+
+function scheduleHideFullscreenControls() {
+  clearTimeout(hideFullscreenControlsTimer);
+  hideFullscreenControlsTimer = setTimeout(() => {
+    fullscreenControls.classList.remove("show");
+  }, 5000);
+}
+
+function showFullscreenControls() {
+  fullscreenControls.classList.add("show");
+  scheduleHideFullscreenControls();
+}
+
 function setControlVisibility(button, isVisible) {
   if (!button) {
     return;
@@ -273,6 +287,9 @@ function syncCallActionButtons() {
   );
   setControlVisibility(endCallBtn, showDisconnectButton);
   setControlVisibility(fullscreenEndCallBtn, showDisconnectButton);
+  setControlVisibility(muteVideoBtn, showDisconnectButton);
+  setControlVisibility(muteAudioBtn, showDisconnectButton);
+  setControlVisibility(zoomBtn, showDisconnectButton);
 }
 
 function setRemoteStream(stream) {
@@ -802,6 +819,8 @@ function renderRoomInvite(roomId) {
 }
 
 function syncFocusUi(isActive) {
+  clearTimeout(hideFullscreenControlsTimer);
+
   if (isActive) {
     videoContainer.classList.add("zoomed");
     controls.style.display = "none";
@@ -962,7 +981,21 @@ fullscreenMuteVideoBtn.addEventListener("click", toggleVideo);
 zoomBtn.addEventListener("click", enterFocusMode);
 minimizeBtn.addEventListener("click", exitFocusMode);
 menuBtn.addEventListener("click", () => {
-  fullscreenControls.classList.toggle("show");
+  if (fullscreenControls.classList.contains("show")) {
+    fullscreenControls.classList.remove("show");
+    clearTimeout(hideFullscreenControlsTimer);
+  } else {
+    showFullscreenControls();
+  }
+});
+fullscreenControls.addEventListener("mouseenter", () => {
+  clearTimeout(hideFullscreenControlsTimer);
+});
+fullscreenControls.addEventListener("mouseleave", () => {
+  scheduleHideFullscreenControls();
+});
+fullscreenControls.addEventListener("click", () => {
+  scheduleHideFullscreenControls();
 });
 colorBtn.addEventListener("click", () => {
   colorPicker.click();
