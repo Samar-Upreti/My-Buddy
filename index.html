@@ -44,19 +44,68 @@
         .room-actions button { padding: 0.5rem 1rem; background-color: #1e293b; color: white; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; transition: background-color 0.2s; }
         .room-actions button:hover { background-color: #334155; }
 
-        /* Dynamically Injected Chat Messages */
-        .message { margin-bottom: 0.5rem; padding: 0.5rem 0.875rem; border-radius: 0.75rem; max-width: 85%; width: fit-content; word-break: break-word; font-size: 0.9rem; line-height: 1.4; }
-        .message.local { margin-left: auto; background-color: #2563eb; color: white; border-bottom-right-radius: 0.25rem; }
-        .message.remote { background-color: #334155; color: white; border-bottom-left-radius: 0.25rem; }
-    
-        /* Smooth entry animation for the chat box */
-        @keyframes chatPopIn {
-            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
+        /* ---- In-Call Messages ---- */
+
+        /* Panel open/close: a mobile bottom sheet that becomes a floating
+           card at sm+. Toggled purely with the .chat-visible class so drag
+           gestures and programmatic open/close share one transition. */
+        #chatBox {
+            transform: translateY(100%);
+            opacity: 1;
+            transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #chatBox.chat-visible {
+            transform: translateY(0);
+        }
+        @media (min-width: 640px) {
+            #chatBox { transform: translateY(16px) scale(0.97); opacity: 0; transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease; }
+            #chatBox.chat-visible { transform: translateY(0) scale(1); opacity: 1; }
         }
 
-        #chatBox {
-            animation: chatPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        #chatBackdrop { transition: background-color 0.3s ease; }
+        #chatBackdrop.active { background-color: rgba(2, 6, 23, 0.55) !important; pointer-events: auto !important; }
+
+        #chatDragHandle { touch-action: none; }
+
+        /* Message bubbles */
+        #chatMessages { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.4) transparent; }
+        #chatMessages::-webkit-scrollbar { width: 6px; }
+        #chatMessages::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 999px; }
+
+        .message {
+            position: relative;
+            max-width: 78%;
+            width: fit-content;
+            margin-top: 0.65rem;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            word-break: break-word;
+            white-space: pre-wrap;
+            border-radius: 1.1rem;
+            animation: messageIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .message:first-child { margin-top: 0; }
+        .message.grouped { margin-top: 0.15rem; }
+
+        .message.local { margin-left: auto; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #eef2ff; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.22); }
+        .message.remote { margin-right: auto; background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(51, 65, 85, 0.6); color: #e2e8f0; }
+        .message.local.tail { border-bottom-right-radius: 0.3rem; }
+        .message.remote.tail { border-bottom-left-radius: 0.3rem; }
+
+        .message-time { float: right; margin: 0.2rem 0 -0.1rem 0.6rem; font-size: 0.65rem; opacity: 0.6; }
+
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(6px) scale(0.98); }
+            to { opacity: 1; transform: none; }
+        }
+
+        /* Send button only "wakes up" once there's something to send */
+        #sendMessageBtn { opacity: 0.5; transform: scale(0.92); }
+        #sendMessageBtn.send-active { opacity: 1; transform: scale(1); }
+
+        @media (prefers-reduced-motion: reduce) {
+            #chatBox, #chatBackdrop, .message, #sendMessageBtn { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
         }
     </style>
 </head>
@@ -126,7 +175,7 @@
                     <!-- Remote Video -->
                     <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] sm:aspect-video border border-slate-800 shadow-inner group">
                         <div class="video-label absolute bottom-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
-                            <span class="bg-blue-600/80 backdrop-blur-sm text-white px-2.5 py-1 rounded text-xs font-semibold w-fit border border-blue-500/50">Guest</span>
+                            <span id="remoteLabel" class="bg-slate-800/80 backdrop-blur-sm text-slate-200 px-2.5 py-1 rounded text-xs font-semibold w-fit border border-slate-700/50">Guest</span>
                         </div>
                         <video autoplay id="remoteVideo" playsinline class="w-full h-full object-cover bg-slate-900"></video>
                     </div>
@@ -144,6 +193,58 @@
                         <button id="fullscreenMessageBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-comments"></i></button>
                         <button id="fullscreenEndCallBtn" class="h-12 w-12 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-phone-slash"></i></button>
                         <button id="fullscreenMinimizeBtn" class="h-12 w-12 rounded-full bg-slate-200 text-slate-900 hover:bg-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-down-left-and-up-right-to-center"></i></button>
+                    </div>
+
+                    <!-- Dims the video behind the chat sheet on mobile; tapping it closes the sheet -->
+                    <div id="chatBackdrop" class="sm:hidden fixed inset-0 z-[1001] bg-transparent pointer-events-none"></div>
+
+                    <!-- In-Call Messages -->
+                    <div id="chatBox" class="flex flex-col fixed inset-x-0 bottom-0 z-[1002] w-full max-h-[82vh] rounded-t-[28px] bg-slate-900/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.45)] sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] sm:h-[560px] sm:max-h-[calc(100vh-3rem)] sm:rounded-[28px] sm:border sm:border-white/10 overflow-hidden origin-bottom-right" style="display:none; padding-bottom: env(safe-area-inset-bottom);">
+
+                        <!-- Drag handle: swipe down to dismiss on mobile -->
+                        <div id="chatDragHandle" class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 cursor-grab active:cursor-grabbing">
+                            <div class="h-1.5 w-10 rounded-full bg-slate-600/60"></div>
+                        </div>
+
+                        <!-- Header -->
+                        <div class="flex justify-between items-center gap-3 px-5 pt-3 pb-4 sm:pt-4 border-b border-white/5 shrink-0">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-blue-500/25 to-indigo-500/25 ring-1 ring-blue-400/20 text-blue-300 flex items-center justify-center">
+                                    <i class="fa-solid fa-comment-dots text-sm"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-white text-[15px] leading-tight truncate">In-Call Messages</p>
+                                    <p class="flex items-center gap-1.5 text-[11px] font-medium mt-0.5 text-slate-400">
+                                        <span id="chatStatusDot" class="h-1.5 w-1.5 rounded-full bg-slate-500 shrink-0"></span>
+                                        <span id="chatStatusText">Waiting to connect…</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button id="closeChatBtn" class="shrink-0 h-9 w-9 rounded-full text-slate-400 hover:text-white hover:bg-white/5 active:scale-90 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50" aria-label="Close chat">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Messages -->
+                        <div id="chatMessages" class="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col scroll-smooth">
+                            <div id="chatEmptyState" class="h-full flex flex-col items-center justify-center text-center gap-3 px-6 text-slate-500">
+                                <div class="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
+                                    <i class="fa-solid fa-comments text-lg"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="text-sm text-slate-300 font-medium">No messages yet</p>
+                                    <p class="text-xs text-slate-500 max-w-[230px] leading-relaxed mx-auto">Anything you send here stays between you two — nothing is saved once the call ends.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input -->
+                        <div id="chatContainer" class="shrink-0 flex gap-2 items-end px-3 py-3 border-t border-white/5">
+                            <textarea id="chatInput" rows="1" placeholder="Message Guest…" aria-label="Message" class="flex-1 resize-none bg-white/5 text-white placeholder-slate-500 rounded-3xl pl-4 pr-4 py-2.5 border border-white/10 focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/25 text-sm leading-relaxed transition max-h-[120px] overflow-y-hidden"></textarea>
+                            <button id="sendMessageBtn" class="shrink-0 h-11 w-11 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center transition-all duration-200 active:scale-90 shadow-lg shadow-blue-600/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50" aria-label="Send message">
+                                <i class="fa-solid fa-paper-plane text-sm"></i>
+                            </button>
+                        </div>
                     </div>
 
                 </div>
@@ -168,46 +269,6 @@
                 </div>
             </section>
         </main>
-
-        <!-- Floating Chat Box -->
-        <div id="chatBox" class="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden origin-bottom-right" style="display:none; max-height: 500px; height: 60vh;">
-            
-            <!-- Inner wrapper handles the JS 'block' display issue -->
-            <div class="flex flex-col h-full w-full">
-                
-                <!-- Chat Header -->
-                <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800/95 backdrop-blur z-10 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-blue-500/20 text-blue-400 h-8 w-8 rounded-full flex items-center justify-center">
-                            <i class="fa-solid fa-message text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-white text-sm leading-tight">In-Call Messages</p>
-                            <p class="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Session Chat</p>
-                        </div>
-                    </div>
-                    <button id="closeChatBtn" class="text-slate-400 hover:text-white h-8 w-8 rounded-full hover:bg-slate-700 transition flex items-center justify-center">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <!-- Chat Messages Area -->
-                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 bg-slate-900/60 flex flex-col gap-2 scroll-smooth"></div>
-
-                <!-- Chat Input Area -->
-                <div id="chatContainer" class="p-3 border-t border-slate-700 bg-slate-800 flex gap-2 items-end">
-                    <div class="relative flex-1">
-                        <input id="chatInput" placeholder="Message everyone..." class="w-full bg-slate-900 text-white rounded-xl pl-4 pr-4 py-3 border border-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition shadow-inner">
-                    </div>
-                    
-                    <!-- Upgraded Send Button with Icon -->
-                    <button id="sendMessageBtn" class="bg-blue-600 hover:bg-blue-500 text-white h-[46px] w-[46px] rounded-xl font-semibold transition flex items-center justify-center shrink-0 shadow-md active:scale-95" aria-label="Send message">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </div>
-                
-            </div>
-        </div>
 
         <!-- Hidden inputs -->
         <input id="colorPicker" style="display:none" type="color" value="#0f172a">

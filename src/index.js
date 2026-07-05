@@ -23,11 +23,16 @@ const fullscreenMessageBtn = document.getElementById("fullscreenMessageBtn");
 const endCallBtn = document.getElementById("endCallBtn");
 const fullscreenEndCallBtn = document.getElementById("fullscreenEndCallBtn");
 const chatBox = document.getElementById("chatBox");
+const chatBackdrop = document.getElementById("chatBackdrop");
+const chatDragHandle = document.getElementById("chatDragHandle");
 const chatMessages = document.getElementById("chatMessages");
 const chatInput = document.getElementById("chatInput");
 const sendMessageBtn = document.getElementById("sendMessageBtn");
 const closeChatBtn = document.getElementById("closeChatBtn");
+const chatStatusDot = document.getElementById("chatStatusDot");
+const chatStatusText = document.getElementById("chatStatusText");
 const imageBtn = document.getElementById("imageBtn");
+const remoteLabel = document.getElementById("remoteLabel");
 
 let localStream;
 let peer;
@@ -39,10 +44,16 @@ let audioEnabled = true;
 let videoEnabled = true;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
+let isHost = null;
 let remoteMediaActive = false;
 let dataConnectionOpen = false;
 let remoteMediaStream = null;
 let sharedRoomId = new URLSearchParams(window.location.search).get("room") || "";
+let lastMessageSender = null;
+let lastMessageEl = null;
+let chatDragStartY = null;
+let chatDragDistance = 0;
+let isDraggingChat = false;
 const pendingPlaybackRetryVideos = new WeakSet();
 const icons = {
   hangUp: '<i class="fa-solid fa-phone-slash" aria-hidden="true"></i>',
@@ -67,6 +78,20 @@ function isStandaloneContext() {
 
 function syncDisplayModeClass() {
   document.body.classList.toggle("app-shell", isStandaloneContext());
+}
+
+function updateRemoteLabel() {
+  if (!remoteLabel) {
+    return;
+  }
+
+  if (isHost === true) {
+    remoteLabel.textContent = "Guest";
+  } else if (isHost === false) {
+    remoteLabel.textContent = "Host";
+  } else {
+    remoteLabel.textContent = "Guest";
+  }
 }
 
 function setStatus(message = "", tone = "neutral") {
@@ -290,6 +315,7 @@ function syncCallActionButtons() {
   setControlVisibility(muteVideoBtn, showDisconnectButton);
   setControlVisibility(muteAudioBtn, showDisconnectButton);
   setControlVisibility(zoomBtn, showDisconnectButton);
+  updateChatConnectionStatus();
 }
 
 function setRemoteStream(stream) {
@@ -350,17 +376,166 @@ function clearInviteQuery() {
   syncRoomEntryUi();
 }
 
+function isChatOpen() {
+  return chatBox.style.display !== "none" && chatBox.style.display !== "";
+}
+
+function openChatBox() {
+  chatBox.style.display = "flex";
+
+  // Force a reflow so the browser registers the "closed" position before
+  // we flip to "visible" — otherwise the transition gets skipped.
+  void chatBox.offsetWidth;
+
+  chatBox.classList.add("chat-visible");
+
+  if (chatBackdrop) {
+    chatBackdrop.classList.add("active");
+  }
+
+  chatInput.focus({ preventScroll: true });
+}
+
+function closeChatBox() {
+  if (!isChatOpen()) {
+    return;
+  }
+
+  chatBox.classList.remove("chat-visible");
+
+  if (chatBackdrop) {
+    chatBackdrop.classList.remove("active");
+  }
+
+  const transitionDuration = window.matchMedia("(min-width: 640px)").matches ? 280 : 320;
+
+  setTimeout(() => {
+    if (!chatBox.classList.contains("chat-visible")) {
+      chatBox.style.display = "none";
+    }
+  }, transitionDuration);
+}
+
 function toggleChatBox() {
-  chatBox.style.display = chatBox.style.display === "none" ? "block" : "none";
+  if (isChatOpen()) {
+    closeChatBox();
+  } else {
+    openChatBox();
+  }
+}
+
+function formatMessageTime(date = new Date()) {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function appendMessage(message, isLocal = true) {
+  const emptyState = document.getElementById("chatEmptyState");
+
+  if (emptyState) {
+    emptyState.remove();
+  }
+
+  const sender = isLocal ? "local" : "remote";
+  const isGrouped = sender === lastMessageSender && Boolean(lastMessageEl);
+
+  if (isGrouped) {
+    lastMessageEl.classList.remove("tail");
+  }
+
   const messageNode = document.createElement("div");
-  messageNode.textContent = message;
-  messageNode.classList.add("message");
-  messageNode.classList.add(isLocal ? "local" : "remote");
+  messageNode.classList.add("message", sender, "tail");
+
+  if (isGrouped) {
+    messageNode.classList.add("grouped");
+  }
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "message-text";
+  textSpan.textContent = message;
+
+  const timeSpan = document.createElement("span");
+  timeSpan.className = "message-time";
+  timeSpan.textContent = formatMessageTime();
+
+  messageNode.appendChild(textSpan);
+  messageNode.appendChild(timeSpan);
   chatMessages.appendChild(messageNode);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
+
+  lastMessageSender = sender;
+  lastMessageEl = messageNode;
+}
+
+function updateChatConnectionStatus() {
+  if (!chatStatusDot || !chatStatusText) {
+    return;
+  }
+
+  if (dataConnectionOpen) {
+    chatStatusDot.className = "h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse";
+    chatStatusText.textContent = "Connected — just the two of you";
+    chatStatusText.className = "text-emerald-400/90";
+  } else {
+    chatStatusDot.className = "h-1.5 w-1.5 rounded-full bg-slate-500 shrink-0";
+    chatStatusText.textContent = "Waiting to connect…";
+    chatStatusText.className = "text-slate-400";
+  }
+}
+
+function autoResizeChatInput() {
+  chatInput.style.height = "auto";
+  const contentHeight = chatInput.scrollHeight;
+  chatInput.style.height = `${Math.min(contentHeight, 120)}px`;
+  chatInput.style.overflowY = contentHeight > 120 ? "auto" : "hidden";
+}
+
+function updateSendButtonState() {
+  sendMessageBtn.classList.toggle("send-active", chatInput.value.trim().length > 0);
+}
+
+function resetChatInput() {
+  chatInput.value = "";
+  autoResizeChatInput();
+  updateSendButtonState();
+}
+
+function onChatDragStart(event) {
+  isDraggingChat = true;
+  chatDragStartY = event.clientY;
+  chatDragDistance = 0;
+  chatBox.style.transition = "none";
+
+  if (chatDragHandle.setPointerCapture) {
+    chatDragHandle.setPointerCapture(event.pointerId);
+  }
+}
+
+function onChatDragMove(event) {
+  if (!isDraggingChat) {
+    return;
+  }
+
+  chatDragDistance = Math.max(0, event.clientY - chatDragStartY);
+  chatBox.style.transform = `translateY(${chatDragDistance}px)`;
+}
+
+function onChatDragEnd() {
+  if (!isDraggingChat) {
+    return;
+  }
+
+  isDraggingChat = false;
+  chatBox.style.transition = "";
+
+  if (chatDragDistance > 110) {
+    chatBox.style.transform = "";
+    closeChatBox();
+  } else {
+    chatBox.style.transform = "";
+  }
+
+  chatDragStartY = null;
+  chatDragDistance = 0;
 }
 
 function bindDataConnection(connection) {
@@ -864,8 +1039,10 @@ function resetRoomUi() {
   currentRoomId = "";
   connectedRoomId = "";
   dataConnectionOpen = false;
+  isHost = null;
+  updateRemoteLabel();
   roomCodeDisplay.innerHTML = "";
-  chatBox.style.display = "none";
+  closeChatBox();
   syncCallActionButtons();
   syncRoomEntryUi();
 }
@@ -898,6 +1075,8 @@ async function createRoom() {
     await getLocalStream();
     await ensurePeerReady();
     currentRoomId = peer.id;
+    isHost = true;
+    updateRemoteLabel();
     renderRoomInvite(currentRoomId);
     syncCallActionButtons();
     syncRoomEntryUi();
@@ -926,6 +1105,8 @@ async function joinRoom(roomValue = sharedRoomId) {
   }
 
   isJoiningRoom = true;
+  isHost = false;
+  updateRemoteLabel();
   syncCallActionButtons();
   syncRoomEntryUi();
 
@@ -1007,9 +1188,7 @@ messageBtn.addEventListener("click", toggleChatBox);
 fullscreenMessageBtn.addEventListener("click", toggleChatBox);
 endCallBtn.addEventListener("click", endCallSession);
 fullscreenEndCallBtn.addEventListener("click", endCallSession);
-closeChatBtn.addEventListener("click", () => {
-  chatBox.style.display = "none";
-});
+closeChatBtn.addEventListener("click", closeChatBox);
 document.addEventListener("fullscreenchange", () => {
   if (document.fullscreenElement !== videoContainer) {
     syncFocusUi(false);
@@ -1024,11 +1203,23 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  chatBox.style.display = "none";
+  closeChatBox();
 });
 chatBox.addEventListener("click", (event) => {
   event.stopPropagation();
 });
+
+if (chatBackdrop) {
+  chatBackdrop.addEventListener("click", closeChatBox);
+}
+
+if (chatDragHandle) {
+  chatDragHandle.addEventListener("pointerdown", onChatDragStart);
+  chatDragHandle.addEventListener("pointermove", onChatDragMove);
+  chatDragHandle.addEventListener("pointerup", onChatDragEnd);
+  chatDragHandle.addEventListener("pointercancel", onChatDragEnd);
+}
+
 sendMessageBtn.addEventListener("click", () => {
   const message = chatInput.value.trim();
 
@@ -1037,16 +1228,22 @@ sendMessageBtn.addEventListener("click", () => {
   }
 
   appendMessage(message);
-  chatInput.value = "";
+  resetChatInput();
+  chatInput.focus({ preventScroll: true });
 
   if (dataConnection && dataConnection.open) {
     dataConnection.send(message);
   }
 });
-chatInput.addEventListener("keypress", (event) => {
-  if (event.key === "Enter") {
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
     sendMessageBtn.click();
   }
+});
+chatInput.addEventListener("input", () => {
+  autoResizeChatInput();
+  updateSendButtonState();
 });
 
 if (imageBtn) {
@@ -1065,9 +1262,11 @@ updateButtonIcon(minimizeBtn, icons.exitFocus, "Exit focus mode");
 updateButtonIcon(endCallBtn, icons.hangUp, "End call");
 updateButtonIcon(fullscreenEndCallBtn, icons.hangUp, "End call");
 chatBox.style.display = "none";
+updateSendButtonState();
 syncDisplayModeClass();
 syncRoomEntryUi();
 syncCallActionButtons();
+updateRemoteLabel();
 setTimeout(maybeJoinFromSharedLink, 0);
 
 const standaloneMediaQueries = [
