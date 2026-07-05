@@ -8,6 +8,8 @@ const roomCodeDisplay = document.getElementById("roomCodeDisplay");
 const errorDisplay = document.getElementById("error");
 const muteAudioBtn = document.getElementById("muteAudioBtn");
 const muteVideoBtn = document.getElementById("muteVideoBtn");
+const screenShareBtn = document.getElementById("screenShareBtn");
+const fullscreenScreenShareBtn = document.getElementById("fullscreenScreenShareBtn");
 const zoomBtn = document.getElementById("zoomBtn");
 const videoContainer = document.getElementById("videoContainer");
 const minimizeBtn = document.getElementById("fullscreenMinimizeBtn");
@@ -42,6 +44,9 @@ let currentRoomId = "";
 let connectedRoomId = "";
 let audioEnabled = true;
 let videoEnabled = true;
+let isScreenSharing = false;
+let screenStream = null;
+let cameraVideoTrack = null;
 let isCreatingRoom = false;
 let isJoiningRoom = false;
 let isHost = null;
@@ -61,6 +66,8 @@ const icons = {
   cameraOn: '<i class="fa-solid fa-video" aria-hidden="true"></i>',
   audioOff: '<i class="fa-solid fa-microphone-slash" aria-hidden="true"></i>',
   audioOn: '<i class="fa-solid fa-microphone" aria-hidden="true"></i>',
+  screenShareOn: '<i class="fa-solid fa-display" aria-hidden="true"></i>',
+  screenShareOff: '<i class="fa-solid fa-display" aria-hidden="true"></i>',
   chat: '<i class="fa-solid fa-comments" aria-hidden="true"></i>',
   focus: '<i class="fa-solid fa-expand" aria-hidden="true"></i>',
   backdrop: '<i class="fa-solid fa-palette" aria-hidden="true"></i>',
@@ -314,6 +321,8 @@ function syncCallActionButtons() {
   setControlVisibility(fullscreenEndCallBtn, showDisconnectButton);
   setControlVisibility(muteVideoBtn, showDisconnectButton);
   setControlVisibility(muteAudioBtn, showDisconnectButton);
+  setControlVisibility(screenShareBtn, showDisconnectButton);
+  setControlVisibility(fullscreenScreenShareBtn, showDisconnectButton);
   setControlVisibility(zoomBtn, showDisconnectButton);
   updateChatConnectionStatus();
 }
@@ -360,6 +369,120 @@ function toggleVideo() {
     track.enabled = videoEnabled;
   });
   updateVideoButtons();
+}
+
+function updateScreenShareButtons() {
+  const label = isScreenSharing ? "Stop sharing screen" : "Share your screen";
+  updateButtonIcon(screenShareBtn, icons.screenShareOn, label);
+  updateButtonIcon(fullscreenScreenShareBtn, icons.screenShareOn, label);
+
+  [screenShareBtn, fullscreenScreenShareBtn].forEach((button) => {
+    if (!button) {
+      return;
+    }
+
+    button.classList.toggle("bg-emerald-600", isScreenSharing);
+    button.classList.toggle("hover:bg-emerald-500", isScreenSharing);
+    button.classList.toggle("bg-slate-700", !isScreenSharing);
+    button.classList.toggle("hover:bg-slate-600", !isScreenSharing);
+  });
+}
+
+function getActiveVideoSender() {
+  if (!currentCall || !currentCall.peerConnection || typeof currentCall.peerConnection.getSenders !== "function") {
+    return null;
+  }
+
+  return currentCall.peerConnection.getSenders().find((sender) => sender.track && sender.track.kind === "video") || null;
+}
+
+async function startScreenShare() {
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== "function") {
+    setStatus("Screen sharing isn't supported in this browser.", "error");
+    return;
+  }
+
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+  } catch (error) {
+    console.warn("Screen share request failed", error);
+    return;
+  }
+
+  const screenTrack = screenStream.getVideoTracks()[0];
+
+  if (!screenTrack) {
+    screenStream = null;
+    return;
+  }
+
+  cameraVideoTrack = localStream ? localStream.getVideoTracks()[0] || null : null;
+
+  const sender = getActiveVideoSender();
+
+  if (sender) {
+    try {
+      await sender.replaceTrack(screenTrack);
+    } catch (error) {
+      console.warn("Failed to send screen share track", error);
+    }
+  }
+
+  attachStreamToVideo(localVideo, screenStream, { muted: true });
+  localVideo.classList.add("scale-x-100");
+  localVideo.classList.remove("-scale-x-100");
+
+  screenTrack.addEventListener("ended", () => {
+    stopScreenShare();
+  });
+
+  isScreenSharing = true;
+  updateScreenShareButtons();
+  setStatus("You're sharing your screen.", "success");
+}
+
+async function stopScreenShare() {
+  if (!isScreenSharing) {
+    return;
+  }
+
+  if (screenStream) {
+    screenStream.getTracks().forEach((track) => {
+      track.stop();
+    });
+  }
+
+  screenStream = null;
+
+  const sender = getActiveVideoSender();
+
+  if (sender && cameraVideoTrack) {
+    try {
+      await sender.replaceTrack(cameraVideoTrack);
+    } catch (error) {
+      console.warn("Failed to restore camera track", error);
+    }
+  }
+
+  if (localStream) {
+    attachStreamToVideo(localVideo, localStream, { muted: true });
+  }
+
+  localVideo.classList.add("-scale-x-100");
+  localVideo.classList.remove("scale-x-100");
+
+  cameraVideoTrack = null;
+  isScreenSharing = false;
+  updateScreenShareButtons();
+  setStatus("Screen sharing stopped.", "success");
+}
+
+function toggleScreenShare() {
+  if (isScreenSharing) {
+    stopScreenShare();
+  } else {
+    startScreenShare();
+  }
 }
 
 function clearInviteQuery() {
@@ -538,6 +661,30 @@ function onChatDragEnd() {
   chatDragDistance = 0;
 }
 
+function handleIncomingData(rawMessage) {
+  let payload = null;
+
+  try {
+    payload = typeof rawMessage === "string" ? JSON.parse(rawMessage) : rawMessage;
+  } catch (error) {
+    payload = null;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    appendMessage(String(rawMessage), false);
+    return;
+  }
+
+  if (payload.type === "call-end") {
+    handleRemoteCallEnd(payload.role);
+    return;
+  }
+
+  if (payload.type === "chat") {
+    appendMessage(String(payload.text ?? ""), false);
+  }
+}
+
 function bindDataConnection(connection) {
   dataConnection = connection;
 
@@ -556,7 +703,7 @@ function bindDataConnection(connection) {
   });
 
   connection.on("data", (message) => {
-    appendMessage(String(message), false);
+    handleIncomingData(message);
   });
 
   connection.on("close", () => {
@@ -886,6 +1033,18 @@ function ensurePeerReady() {
 }
 
 function resetMedia() {
+  if (isScreenSharing) {
+    if (screenStream) {
+      screenStream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+    screenStream = null;
+    cameraVideoTrack = null;
+    isScreenSharing = false;
+    updateScreenShareButtons();
+  }
+
   if (localStream) {
     localStream.getTracks().forEach((track) => {
       track.stop();
@@ -1047,7 +1206,7 @@ function resetRoomUi() {
   syncRoomEntryUi();
 }
 
-function endCallSession() {
+function performLocalCallReset(statusMessage, tone = "success") {
   closeDataConnection();
   closeCurrentCall();
   destroyPeer();
@@ -1055,7 +1214,36 @@ function endCallSession() {
   resetRoomUi();
   clearInviteQuery();
   exitFocusMode();
-  setStatus("Call ended. You can create or join a new room.", "success");
+  setStatus(statusMessage, tone);
+}
+
+function notifyPeerCallEnded() {
+  if (!dataConnection || !dataConnection.open) {
+    return;
+  }
+
+  const role = isHost === true ? "Host" : isHost === false ? "Guest" : "Participant";
+
+  try {
+    dataConnection.send(JSON.stringify({ type: "call-end", role }));
+  } catch (error) {
+    console.warn("Failed to notify peer about call end", error);
+  }
+}
+
+function endCallSession() {
+  notifyPeerCallEnded();
+
+  // Give the data channel a brief moment to flush the call-end message
+  // before we close the connection out from under it.
+  setTimeout(() => {
+    performLocalCallReset("Call ended. You can create or join a new room.", "success");
+  }, 150);
+}
+
+function handleRemoteCallEnd(role) {
+  const label = role === "Host" || role === "Guest" ? role : "The other participant";
+  performLocalCallReset(`${label} declined the call. You can create or join a new room.`, "error");
 }
 
 async function createRoom() {
@@ -1159,6 +1347,8 @@ muteAudioBtn.addEventListener("click", toggleAudio);
 fullscreenMuteAudioBtn.addEventListener("click", toggleAudio);
 muteVideoBtn.addEventListener("click", toggleVideo);
 fullscreenMuteVideoBtn.addEventListener("click", toggleVideo);
+screenShareBtn.addEventListener("click", toggleScreenShare);
+fullscreenScreenShareBtn.addEventListener("click", toggleScreenShare);
 zoomBtn.addEventListener("click", enterFocusMode);
 minimizeBtn.addEventListener("click", exitFocusMode);
 menuBtn.addEventListener("click", () => {
@@ -1232,7 +1422,7 @@ sendMessageBtn.addEventListener("click", () => {
   chatInput.focus({ preventScroll: true });
 
   if (dataConnection && dataConnection.open) {
-    dataConnection.send(message);
+    dataConnection.send(JSON.stringify({ type: "chat", text: message }));
   }
 });
 chatInput.addEventListener("keydown", (event) => {
@@ -1254,6 +1444,7 @@ if (imageBtn) {
 
 updateAudioButtons();
 updateVideoButtons();
+updateScreenShareButtons();
 updateButtonIcon(messageBtn, icons.chat, "Open chat");
 updateButtonIcon(fullscreenMessageBtn, icons.chat, "Open chat");
 updateButtonIcon(zoomBtn, icons.focus, "Open focus mode");

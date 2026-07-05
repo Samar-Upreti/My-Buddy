@@ -34,9 +34,25 @@
         .zoomed .video-card { background: transparent; border: none; box-shadow: none; width: 100%; max-width: 800px; }
         .zoomed .video-label { display: none; }
         .zoomed video { border-radius: 1rem; max-height: 85vh; }
+
+        /* On phones, two stacked full-height videos plus the fixed menu/control
+           bars don't fit the viewport at once — cap each video's height, allow
+           the stage to scroll, and leave room at the bottom for the controls. */
+        @media (max-width: 639px) {
+            .zoomed {
+                overflow-y: auto;
+                padding: 12px 12px calc(112px + env(safe-area-inset-bottom));
+                justify-content: flex-start;
+            }
+            .zoomed video {
+                max-height: min(42dvh, 380px);
+            }
+        }
         
         /* Utility */
         .show { display: flex !important; }
+        .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         
         /* Dynamically Injected Room Invite Elements */
         #roomCodeDisplay a { display: block; padding: 0.75rem 1rem; background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 0.5rem; text-decoration: none; word-break: break-all; margin-top: 0.5rem; margin-bottom: 0.75rem; font-weight: 500; }
@@ -142,7 +158,7 @@
         <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
             
             <!-- Control Panel (Sidebar) -->
-            <section class="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-6">
+            <section class="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-6">
                 <article class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
                     <p id="roomPanelKicker" class="text-blue-500 font-bold tracking-widest text-xs uppercase mb-2">Host</p>
                     <h2 id="roomPanelTitle" class="text-2xl font-bold text-white mb-2">Start a room</h2>
@@ -159,12 +175,12 @@
             </section>
 
             <!-- Video Call Stage -->
-            <section class="lg:col-span-8 xl:col-span-9 bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-2xl shadow-lg flex flex-col min-h-[500px]">
+            <section class="lg:col-span-8 xl:col-span-9 bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-2xl shadow-lg flex flex-col min-h-[420px] md:min-h-[500px]">
                 
-                <div id="videoContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div id="videoContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
                     <!-- Local Video -->
-                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] sm:aspect-video border border-slate-800 shadow-inner group">
+                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] md:aspect-video border border-slate-800 shadow-inner group">
                         <div class="video-label absolute bottom-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
                             <span class="bg-slate-800/80 backdrop-blur-sm text-slate-200 px-2.5 py-1 rounded text-xs font-semibold w-fit border border-slate-700/50">You</span>
                         </div>
@@ -173,7 +189,7 @@
                     </div>
 
                     <!-- Remote Video -->
-                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] sm:aspect-video border border-slate-800 shadow-inner group">
+                    <div class="video-card relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] md:aspect-video border border-slate-800 shadow-inner group">
                         <div class="video-label absolute bottom-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
                             <span id="remoteLabel" class="bg-slate-800/80 backdrop-blur-sm text-slate-200 px-2.5 py-1 rounded text-xs font-semibold w-fit border border-slate-700/50">Guest</span>
                         </div>
@@ -181,18 +197,21 @@
                     </div>
 
                     <!-- Hidden Mobile Menu Toggle for Fullscreen (must live inside videoContainer so it renders while videoContainer is in true fullscreen) -->
-                    <button id="menuBtn" class="fixed top-6 right-6 z-[1001] hidden h-12 w-12 rounded-full bg-slate-700/90 text-white items-center justify-center shadow-lg border border-slate-400/40 opacity-30 hover:opacity-100 focus:opacity-100 active:opacity-100 transition-opacity duration-300" aria-label="Toggle fullscreen controls" type="button">
+                    <button id="menuBtn" class="fixed z-[1001] hidden h-12 w-12 rounded-full bg-slate-700/90 text-white items-center justify-center shadow-lg border border-slate-400/40 opacity-30 hover:opacity-100 focus:opacity-100 active:opacity-100 transition-opacity duration-300" style="top: calc(1.5rem + env(safe-area-inset-top)); right: calc(1.5rem + env(safe-area-inset-right));" aria-label="Toggle fullscreen controls" type="button">
                         <i class="fa-solid fa-bars"></i>
                     </button>
 
                     <!-- Fullscreen Controls (also must live inside videoContainer for the same reason) -->
-                    <div id="fullscreenControls" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] gap-2 p-2 rounded-full bg-slate-800/90 backdrop-blur-md shadow-2xl border border-slate-700">
-                        <button id="fullscreenMuteVideoBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-video"></i></button>
-                        <button id="fullscreenMuteAudioBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-microphone"></i></button>
-                        <button id="colorBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" title="Change background color" type="button"><i class="fa-solid fa-palette"></i></button>
-                        <button id="fullscreenMessageBtn" class="h-12 w-12 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-comments"></i></button>
-                        <button id="fullscreenEndCallBtn" class="h-12 w-12 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-phone-slash"></i></button>
-                        <button id="fullscreenMinimizeBtn" class="h-12 w-12 rounded-full bg-slate-200 text-slate-900 hover:bg-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-down-left-and-up-right-to-center"></i></button>
+                    <div id="fullscreenControls" class="hidden fixed left-1/2 -translate-x-1/2 z-[1000] max-w-[92vw] rounded-full bg-slate-800/90 backdrop-blur-md shadow-2xl border border-slate-700" style="bottom: calc(1.25rem + env(safe-area-inset-bottom));">
+                        <div class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 overflow-x-auto no-scrollbar scroll-smooth min-w-0">
+                            <button id="fullscreenMuteVideoBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-video"></i></button>
+                            <button id="fullscreenMuteAudioBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-microphone"></i></button>
+                            <button id="fullscreenScreenShareBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-display"></i></button>
+                            <button id="colorBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" title="Change background color" type="button"><i class="fa-solid fa-palette"></i></button>
+                            <button id="fullscreenMessageBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full hover:bg-slate-700 text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-comments"></i></button>
+                            <button id="fullscreenEndCallBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition" type="button" style="display:none"><i class="fa-solid fa-phone-slash"></i></button>
+                            <button id="fullscreenMinimizeBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-200 text-slate-900 hover:bg-white flex items-center justify-center transition" type="button"><i class="fa-solid fa-down-left-and-up-right-to-center"></i></button>
+                        </div>
                     </div>
 
                     <!-- Dims the video behind the chat sheet on mobile; tapping it closes the sheet -->
@@ -250,22 +269,27 @@
                 </div>
 
                 <!-- Call Controls Dock -->
-                <div id="controls" class="flex flex-wrap justify-center gap-3 mt-6 lg:mt-4">
-                    <button id="muteVideoBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Turn camera off" style="display:none">
-                        <i class="fa-solid fa-video-slash"></i>
-                    </button>
-                    <button id="muteAudioBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Mute microphone" style="display:none">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
-                    <button id="messageBtn" class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Open chat" style="display:none">
-                        <i class="fa-solid fa-comments"></i>
-                    </button>
-                    <button id="zoomBtn" class="h-12 w-12 rounded-full bg-slate-200 hover:bg-white text-slate-900 flex items-center justify-center transition shadow-md active:scale-95" type="button" aria-label="Open focus mode" style="display:none">
-                        <i class="fa-solid fa-expand"></i>
-                    </button>
-                    <button id="endCallBtn" class="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 active:scale-95" type="button" aria-label="End call" style="display:none">
-                        <i class="fa-solid fa-phone-slash"></i>
-                    </button>
+                <div id="controls" class="mt-6 lg:mt-4 flex justify-center">
+                    <div class="flex items-center gap-2 sm:gap-3 p-2 rounded-full bg-slate-800/70 border border-slate-700/70 shadow-lg overflow-x-auto no-scrollbar scroll-smooth min-w-0 max-w-full">
+                        <button id="muteVideoBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition active:scale-95" type="button" aria-label="Turn camera off" style="display:none">
+                            <i class="fa-solid fa-video-slash"></i>
+                        </button>
+                        <button id="muteAudioBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition active:scale-95" type="button" aria-label="Mute microphone" style="display:none">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        <button id="screenShareBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition active:scale-95" type="button" aria-label="Share your screen" style="display:none">
+                            <i class="fa-solid fa-display"></i>
+                        </button>
+                        <button id="messageBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition active:scale-95" type="button" aria-label="Open chat" style="display:none">
+                            <i class="fa-solid fa-comments"></i>
+                        </button>
+                        <button id="zoomBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-slate-200 hover:bg-white text-slate-900 flex items-center justify-center transition active:scale-95" type="button" aria-label="Open focus mode" style="display:none">
+                            <i class="fa-solid fa-expand"></i>
+                        </button>
+                        <button id="endCallBtn" class="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition active:scale-95" type="button" aria-label="End call" style="display:none">
+                            <i class="fa-solid fa-phone-slash"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>
